@@ -1,0 +1,34 @@
+directories:
+  output: dist_desktop
+  buildResources: build
+appId: com.dobill.pos
+productName: DoBillPOS
+asar: true
+files:
+  - filter:
+      - dist/**/*
+      - main.cjs
+      - package.json
+      - src/assets/**/*
+extraMetadata:
+  main: main.cjs
+win:
+  icon: src/assets/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+  signExecutable: false
+nsis:
+  oneClick: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: DoBillPOS
+mac:
+  target:
+    - dmg
+  icon: src/assets/logo.png
+electronVersion: 31.7.7

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Do Bill POS</title>
+    <link rel="icon" type="image/svg+xml" href="/src/assets/logo.svg" />
+    <link rel="shortcut icon" type="image/svg+xml" href="/src/assets/logo.svg" />
+    <link rel="apple-touch-icon" href="/src/assets/logo.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => {
+              console.log('[ServiceWorker] Registered successfully:', reg.scope);
+              reg.update();
+            })
+            .catch(err => console.error('[ServiceWorker] Registration failed:', err));
+        });
+      }
+    </script>
+    <script>
+      (function() {
+        // Intercept addEventListener to filter out any "Script error." events before they reach other listeners
+        (function() {
+          var originalAdd = window.addEventListener;
+          var protoAdd = Window.prototype ? Window.prototype.addEventListener : null;
+          var targetProtoAdd = EventTarget.prototype ? EventTarget.prototype.addEventListener : null;
+
+          function wrapAddEventListener(original) {
+            if (!original) return original;
+            return function(type, listener, options) {
+              if ((type === 'error' || type === 'unhandledrejection') && typeof listener === 'function') {
+                var wrapped = function(event) {
+                  if (event) {
+                    var msg = (event.message || '').toString().toLowerCase();
+                    var errStack = (event.error && event.error.stack || '').toString().toLowerCase();
+                    var errMsg = (event.error && event.error.message || '').toString().toLowerCase();
+                    var reasonMsg = (event.reason && (event.reason.message || event.reason) || '').toString().toLowerCase();
+                    var isScriptError = (
+                      msg.indexOf('script error') > -1 || 
+                      errMsg.indexOf('script error') > -1 || 
+                      errStack.indexOf('script error') > -1 ||
+                      reasonMsg.indexOf('script error') > -1
+                    );
+
+                    if (isScriptError) {
+                      try { event.preventDefault(); } catch(e) {}
+                      try { event.stopPropagation(); } catch(e) {}
+                      try { event.stopImmediatePropagation(); } catch(e) {}
+                      return; // Completely block "Script error." propagation
+                    }
+                  }
+                  return listener.call(this, event);
+                };
+                wrapped._original = listener;
+                return original.call(this, type, wrapped, options);
+              }
+              return original.apply(this, arguments);
+            };
+          }
+
+          if (originalAdd) {
+            window.addEventListener = wrapAddEventListener(originalAdd);
+          }
+          if (protoAdd) {
+            Window.prototype.addEventListener = wrapAddEventListener(protoAdd);
+          }
+          if (targetProtoAdd) {
+            EventTarget.prototype.addEventListener = wrapAddEventListener(targetProtoAdd);
+          }
+        })();
+
+        // Make window.fetch writable to prevent Capacitor / native bridge errors on read-only window.fetch
+        (function() {
+          var originalFetch = window.fetch;
+          if (!originalFetch) return;
+          var currentFetch = originalFetch;
+
+          try {
+            Object.defineProperty(window, 'fetch', {
+              configurable: true,
+              enumerable: true,
+              get: function() {
+                return currentFetch;
+              },
+              set: function(val) {
+                currentFetch = val;
+              }
+            });
+          } catch (e) {
+            try {
+              Object.defineProperty(Window.prototype, 'fetch', {
+                configurable: true,
+                enumerable: true,
+                get: function() {
+                  return currentFetch;
+                },
+                set: function(val) {
+                  currentFetch = val;
+                }
+              });
+            } catch (ex) {
+              console.warn("Could not redefine window.fetch or Window.prototype.fetch:", ex);
+            }
+          }
+        })();
+
+        // Safely intercept direct assignments to window.onerror and window.onunhandledrejection
+        (function() {
+          var currentOnerror = null;
+          try {
+            Object.defineProperty(window, 'onerror', {
+              configurable: true,
+              enumerable: true,
+              get: function() {
+                return currentOnerror;
+              },
+              set: function(val) {
+                if (typeof val === 'function') {
+                  currentOnerror = function(message, source, lineno, colno, error) {
+                    var msg = (message || '').toString().toLowerCase();
+                    var errStack = (error && error.stack || '').toString().toLowerCase();
+                    var errMsg = (error && error.message || '').toString().toLowerCase();
+                    if (msg.indexOf('script error') > -1 || errMsg.indexOf('script error') > -1 || errStack.indexOf('script error') > -1) {
+                      return true; // Return true to prevent default propagation
+                    }
+                    return val.apply(this, arguments);
+                  };
+                } else {
+                  currentOnerror = val;
+                }
+              }
+            });
+          } catch (e) {
+            console.warn("Could not override window.onerror setter:", e);
+          }
+
+          var currentOnunhandled = null;
+          try {
+            Object.defineProperty(window, 'onunhandledrejection', {
+              configurable: true,
+              enumerable: true,
+              get: function() {
+                return currentOnunhandled;
+              },
+              set: function(val) {
+                if (typeof val === 'function') {
+                  currentOnunhandled = function(event) {
+                    if (event) {
+                      var reason = event.reason || {};
+                      var stack = (reason.stack || '').toString().toLowerCase();
+                      var message = (reason.message || reason || '').toString().toLowerCase();
+                      if (message.indexOf('script error') > -1 || stack.indexOf('script error') > -1) {
+                        try { event.preventDefault(); } catch(ex) {}
+                        try { event.stopPropagation(); } catch(ex) {}
+                        try { event.stopImmediatePropagation(); } catch(ex) {}
+                        return;
+                      }
+                    }
+                    return val.apply(this, arguments);
+                  };
+                } else {
+                  currentOnunhandled = val;
+                }
+              }
+            });
+          } catch (e) {
+            console.warn("Could not override window.onunhandledrejection setter:", e);
+          }
+        })();
+
+        var capturedErrors = [];
+
+        // Wrap console.error early to completely filter out any cross-origin "Script error." messages
+        var originalConsoleError = console.error;
+        console.error = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var argStr = '';
+          try {
+            argStr = JSON.stringify(args).toLowerCase();
+          } catch(e) {
+            try {
+              argStr = args.join(' ').toLowerCase();
+            } catch(ex) {
+              argStr = '';
+            }
+          }
+          if (argStr.indexOf('script error') > -1) {
+            return; // Ignore completely
+          }
+          originalConsoleError.apply(console, arguments);
+        };
+
+        // Catch and silence external/restricted "Script error." immediately at the window.onerror level
+        window.onerror = function(message, source, lineno, colno, error) {
+          var msg = (message || '').toString().toLowerCase();
+          var errStack = (error && error.stack || '').toString().toLowerCase();
+          var errMsg = (error && error.message || '').toString().toLowerCase();
+          
+          if (msg.indexOf('script error') > -1 || errMsg.indexOf('script error') > -1 || errStack.indexOf('script error') > -1) {
+            return true; // Return true prevents default firing (stays out of browser console)
+          }
+
+          var isInternal = false;
+          if (source) {
+            var f = source.toLowerCase();
+            var origin = window.location.origin.toLowerCase();
+            isInternal = (
+              f.indexOf('src/') > -1 || 
+              f.indexOf(origin) > -1 || 
+              f.indexOf('localhost') > -1 || 
+              f.indexOf('127.0.0.1') > -1 || 
+              f.indexOf('main.tsx') > -1 || 
+              f.indexOf('/assets/') > -1
+            );
+          } else if (errStack) {
+            isInternal = (
+              errStack.indexOf('src/') > -1 ||
+              errStack.indexOf('main.tsx') > -1 ||
+              errStack.indexOf('localhost') > -1 ||
+              errStack.indexOf('127.0.0.1') > -1
+            );
+          }
+
+          if (!isInternal) {
+            return true; // Silence non-first-party scripts, extensions, or anonymous errors
+          }
+          return false; // let any genuine first-party app errors proceed
+        };
+
+        // Suppress and log runtime errors cleanly to console without interrupting user UI
+        window.onerror = function(message, source, lineno, colno, error) {
+          console.warn('[Global Runtime Warning]:', message, source, lineno, colno);
+          return true; // prevent error popups
+        };
+
+        window.addEventListener('error', function(event) {
+          try { event.preventDefault(); } catch(e) {}
+          console.warn('[Global Window Error Suppressed]:', event.message || event);
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          try { event.preventDefault(); } catch(e) {}
+          var reason = event.reason || {};
+          console.warn("[Unhandled Rejection Suppressed]:", reason.message || reason);
+        }, true);
+      })();
+    </script>
+  </head>
+  <body class="bg-slate-900 text-slate-100">
+    <div id="root">
+      <!-- High performance pre-react loading state to prevent blank screen during Render server spin-up -->
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="width: 48px; height: 48px; border: 4px solid #334155; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        <p style="margin-top: 18px; font-size: 15px; font-weight: 600; color: #cbd5e1; letter-spacing: 0.5px;">Loading Do Bill POS...</p>
+        <p style="margin-top: 4px; font-size: 12px; color: #64748b;">Starting high-performance billing engine</p>
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+      </style>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

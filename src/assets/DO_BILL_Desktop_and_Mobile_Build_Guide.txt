@@ -1,0 +1,82 @@
+================================================================================
+          DO BILL - DESKTOP (.EXE) & MOBILE (.APK) NATIVE COMPILATION GUIDE
+================================================================================
+
+Dear DO BILL Operator,
+
+If you downloaded the .exe or .apk directly from the browser preview and received
+an error like "This app can't run on your PC" or "File not found / Parse error",
+this is normal and expected. Here is why:
+
+The live cloud preview runs in a secure, serverless Linux container. A Linux-based
+cloud server cannot dynamically compile or sign native Microsoft Windows (.exe)
+installers or Google Android (.apk) packages in the browser.
+
+To install and run the real, fully functional DO BILL native applications, you must
+build them on your local machine (your Windows PC or Mac) using the code in your
+GitHub repository. Follow the simple step-by-step instructions below.
+
+--------------------------------------------------------------------------------
+1. PRE-REQUISITES (ON YOUR COMPUTER)
+--------------------------------------------------------------------------------
+- Install Node.js (version 18 or newer) from: https://nodejs.org
+- Install Git from: https://git-scm.com
+- (For Android only) Install Android Studio from: https://developer.android.com/studio
+
+--------------------------------------------------------------------------------
+2. DOWNLOAD YOUR CODE (CLONE REPOSITORY)
+--------------------------------------------------------------------------------
+Open your command prompt or terminal on your PC/Mac, and run:
+
+  git clone <YOUR_GITHUB_REPOSITORY_URL>
+  cd <YOUR_REPOSITORY_FOLDER>
+
+Then, install all required project packages:
+
+  npm install
+
+--------------------------------------------------------------------------------
+3. HOW TO BUILD THE REAL WINDOWS APP (.EXE)
+--------------------------------------------------------------------------------
+On your Windows PC (or your Mac if building a Mac package), run:
+
+  npx electron-builder --win
+
+Once the build process completes:
+1. Open your project folder.
+2. Go to the newly created folder: `dist_desktop/`
+3. You will find the genuine `DoBillPOS Setup 1.0.0.exe` (or ZIP file) inside!
+4. Double-click it to install. It will launch as a beautiful, high-speed, 
+   native desktop application with real printer integration.
+
+--------------------------------------------------------------------------------
+4. HOW TO BUILD THE REAL MOBILE APP (.APK)
+--------------------------------------------------------------------------------
+To compile a real, working Android APK, run these commands in your project folder:
+
+  # Step A: Compile the React production build
+  npm run build
+
+  # Step B: Sync the compiled code into your Android assets
+  npx cap sync
+
+  # Step C: Open the project in Android Studio
+  npx cap open android
+
+Inside Android Studio (once Gradle sync completes):
+1. In the top menu, go to: Build > Build Bundle(s) / APK(s) > Build APK(s)
+2. Android Studio will compile your native APK.
+3. Click "Locate" in the bottom right corner notification to open the output folder.
+4. Copy the `app-debug.apk` file to your Android phone and open it to install!
+5. It will install and run as a fast, touch-friendly, high-performance POS.
+
+--------------------------------------------------------------------------------
+SUPPORT & SYNCING
+--------------------------------------------------------------------------------
+All platforms (Web, Windows Desktop, and Android Mobile) share the exact same
+database sync and authentication system. Any transaction, sale, or product edit 
+you make on your Mobile app will instantly sync and reflect on your Windows app 
+and Web panel in real time!
+
+Thank you for choosing DO BILL.
+================================================================================

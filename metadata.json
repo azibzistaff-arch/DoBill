@@ -1,0 +1,12 @@
+{
+  "name": "DoBill POS",
+  "description": "Enterprise-grade barcode inventory and billing system for Om Sai Collection, featuring UPI integration, real-time stock tracking, and advanced sales analytics.",
+  "requestFramePermissions": [
+    "camera",
+    "usb",
+    "bluetooth"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
