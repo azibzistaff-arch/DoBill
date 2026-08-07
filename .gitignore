@@ -10,4 +10,4 @@ android/local.properties
 *.jks
 *.keystore
 
-releases/*.apk
+releases/*.apk.DS_Store
