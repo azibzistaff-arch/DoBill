@@ -2,5 +2,13 @@
 	{
 		"pkg": "@capacitor/app",
 		"classpath": "com.capacitorjs.plugins.app.AppPlugin"
+	},
+	{
+		"pkg": "@capacitor/camera",
+		"classpath": "com.capacitorjs.plugins.camera.CameraPlugin"
+	},
+	{
+		"pkg": "capacitor-thermal-printer",
+		"classpath": "com.malik12tree.bluetooth_print.CapacitorThermalPrinterPlugin"
 	}
 ]
