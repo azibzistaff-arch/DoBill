@@ -1,0 +1,4 @@
+owner: azibzistaff-arch
+repo: DoBill
+provider: github
+updaterCacheDirName: react-example-updater
