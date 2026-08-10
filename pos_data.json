@@ -1,0 +1,22 @@
+{
+  "app_users": [
+    {
+      "email": "prabhjeetmehra313@gmail.com",
+      "password": "casher",
+      "workspace_owner": "prabhjeetmehra313@gmail.com",
+      "role": "Admin",
+      "createdAt": "2026-07-19T16:05:21.006Z"
+    }
+  ],
+  "products": [],
+  "sales": [],
+  "purchases": [],
+  "config": [
+    {}
+  ],
+  "tenant_config": [
+    {}
+  ],
+  "access_requests": [],
+  "email_logs": []
+}
