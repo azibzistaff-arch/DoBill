@@ -130,11 +130,6 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-  }
-  *::-webkit-scrollbar {
-    display: none !important;
   }
   body {
     @apply bg-background text-foreground overflow-x-hidden;
@@ -266,47 +261,55 @@
   font-size: 11px;
 }
 
-/* Beautiful, modern custom scrollbars */
+/* Beautiful, modern visible custom scrollbars for X and Y axes */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #a1a1aa #f4f4f5;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.3); /* slate-400 with opacity */
+  background: #f1f5f9;
   border-radius: 9999px;
 }
 
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+  border: 1px solid #f1f5f9;
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.5);
+  background: #64748b;
 }
 
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.5) rgba(241, 245, 249, 0.6);
+  scrollbar-color: #6366f1 #e0e7ff;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.6);
+  background: #f1f5f9;
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.5);
+  background: #818cf8;
   border-radius: 9999px;
+  border: 1px solid #e0e7ff;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.8);
+  background: #4f46e5;
 }
 
 /* Scrollbar-none utility to explicitly hide scrollbars where requested */
