@@ -1369,7 +1369,7 @@ export default function POS() {
                     return (
                       <div key={idx} className="flex justify-between gap-3 text-xs sm:text-sm">
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="font-semibold text-slate-700 truncate">{item.name}</span>
+                          <span className="font-semibold text-slate-700 cursor-help" title={item.name}>{truncate20(item.name, 20)}</span>
                           <span className="text-[10px] text-slate-400 font-medium">
                             ₹{item.sellingPrice.toFixed(2)} x {item.quantity} {item.unit}
                             {discPercent > 0 && <span className="text-red-500 font-bold ml-1">(-{discPercent}%)</span>}
