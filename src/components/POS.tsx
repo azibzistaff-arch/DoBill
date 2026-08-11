@@ -1896,4 +1896,3 @@ export default function POS() {
     </>
   );
 }
-
