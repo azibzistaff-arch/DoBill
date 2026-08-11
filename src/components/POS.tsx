@@ -1700,7 +1700,7 @@ export default function POS() {
                 <PlayCircle className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-bold uppercase tracking-wider text-slate-600">Held Bills ({heldBills.length})</h4>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[120px] overflow-y-auto custom-scrollbar pr-1.5">
                 {heldBills.map((bill, i) => (
                   bill && (
                     <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
