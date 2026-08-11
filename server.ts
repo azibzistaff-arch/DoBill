@@ -4957,7 +4957,7 @@ Thank you for choosing DO BILL.
         const todayDateStr = `${year}-${month}-${day}`;
         const updatedConfig = {
           ...autoConfig,
-          lastSentDate: todayDateStr,
+          lastSentDate: isManualTrigger ? (autoConfig.lastSentDate || '') : todayDateStr,
           lastSentTimestamp: Date.now()
         };
 
@@ -5136,15 +5136,12 @@ Thank you for choosing DO BILL.
         if (settings.enabled !== false) {
           const configuredTime = settings.reportTime || '23:59';
           
-          // Trigger if:
-          // 1) 24 hours (24 * 60 * 60 * 1000 ms) have passed since last dispatch
-          // 2) OR date changed AND current time is at or past configured time
-          const msSinceLastSent = settings.lastSentTimestamp ? (Date.now() - settings.lastSentTimestamp) : 999999999;
-          const is24HoursElapsed = msSinceLastSent >= 24 * 60 * 60 * 1000;
-          const isTimeReachedToday = settings.lastSentDate !== currentDateStr && currentTimeStr >= configuredTime;
+          // Trigger once per day when current time reaches or passes configured daily time (default 23:59)
+          const isNotSentToday = settings.lastSentDate !== currentDateStr;
+          const isTimeReached = currentTimeStr >= configuredTime;
 
-          if (isTimeReachedToday || is24HoursElapsed) {
-            console.log(`[Auto Report Scheduler] Triggering automatic 24h email report for workspace owner: ${workspace_owner}`);
+          if (isNotSentToday && isTimeReached) {
+            console.log(`[Auto Report Scheduler] Triggering automatic daily email report at ${currentTimeStr} for workspace owner: ${workspace_owner}`);
             await generateAndSendBusinessReport({ owner: workspace_owner, type: 'daily' });
           }
         }
