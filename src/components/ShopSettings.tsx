@@ -58,39 +58,39 @@ const getMongoDiagnosticMessage = (errorStr: string) => {
   
   if (lower.includes('bad auth') || lower.includes('authentication failed')) {
     return {
-      title: "Incorrect Password or Username (गलत पासवर्ड या यूजरनेम)",
-      desc: "आपका पासवर्ड या यूजरनेम गलत है। कृपया ध्यान दें कि MongoDB Atlas में डेटाबेस यूजर का पासवर्ड और आपके Atlas लॉगिन का पासवर्ड अलग होता है। Database Access में जाकर नया पासवर्ड बनाएं और उसे MONGODB_URI में डालें।",
+      title: "Incorrect Password or Username",
+      desc: "Your database password or username is incorrect. Note that the database user password in MongoDB Atlas is different from your Atlas account login password. Please update your password in Database Access and place it in MONGODB_URI.",
       icon: "🔑",
     };
   }
   
   if (lower.includes('unescaped characters') || lower.includes('must not contain unescaped')) {
     return {
-      title: "Special Characters in Password (पासवर्ड में स्पेशल कैरेक्टर्स)",
-      desc: "आपके पासवर्ड में @, #, :, + जैसे स्पेशल कैरेक्टर्स हैं जो MongoDB कनेक्शन स्ट्रिंग को खराब कर रहे हैं। या तो इन्हें Atlas में बदलें (केवल लेटर्स और नंबर्स रखें) या URL-encode करें (जैसे @ की जगह %40 लिखें)।",
+      title: "Special Characters in Password",
+      desc: "Your password contains special characters like @, #, :, + which must be URL-encoded (e.g., %40 for @) or updated to alphanumeric characters in MongoDB Atlas.",
       icon: "⚠️",
     };
   }
   
   if (lower.includes('selection timeout') || lower.includes('timed out') || lower.includes('timeout')) {
     return {
-      title: "Network IP Whitelist Issue (आईपी व्हाइटलिस्ट या फायरवॉल ब्लॉक)",
-      desc: "सर्वर MongoDB से कनेक्ट नहीं कर पा रहा है। इसका मुख्य कारण है कि आपने MongoDB Atlas में IP Whitelist सेटअप नहीं किया है। कृपया MongoDB Atlas -> Network Access में जाकर IP Address 0.0.0.0/0 (Allow Access from Anywhere) ऐड करें।",
+      title: "Network IP Whitelist Issue",
+      desc: "Unable to connect to MongoDB Atlas. Ensure that IP whitelist entry 0.0.0.0/0 (Allow Access from Anywhere) is enabled in MongoDB Atlas -> Network Access.",
       icon: "🌐",
     };
   }
   
   if (lower.includes('invalid connection string') || lower.includes('scheme must be')) {
     return {
-      title: "Invalid Connection Format (कनेक्शन स्ट्रिंग का गलत फॉर्मेट)",
-      desc: "कनेक्शन स्ट्रिंग का फॉर्मेट गलत है। यह 'mongodb+srv://...' या 'mongodb://...' से शुरू होना चाहिए। कृपया जांचें कि कहीं कोई स्पेस या गलत कैरेक्टर तो टाइप नहीं हो गया है।",
+      title: "Invalid Connection String Format",
+      desc: "The connection string format is invalid. It should start with 'mongodb+srv://...' or 'mongodb://...'. Please check for typos or extra spaces.",
       icon: "📝",
     };
   }
   
   return {
-    title: "General Atlas Connection Error (सामान्य डेटाबेस कनेक्शन एरर)",
-    desc: "सर्वर MongoDB से कनेक्ट नहीं हो पा रहा है। कृपया जांचें कि आपका MONGODB_URI सही है, और MongoDB Atlas में Network Access (IP 0.0.0.0/0) चालू है।",
+    title: "General Atlas Connection Error",
+    desc: "Unable to connect to MongoDB. Please verify that your MONGODB_URI is correct and Network Access (IP 0.0.0.0/0) is configured.",
     icon: "🔌",
   };
 };
@@ -1220,7 +1220,7 @@ export default function ShopSettings() {
                       onChange={(e) => setAutoReport({ ...autoReport, sendEvenIfNoSales: e.target.checked })}
                       className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                     />
-                    <span>Send Report Even If 0 Sales Today (बिक्री न होने पर भी रिपोर्ट भेजें)</span>
+                    <span>Send Report Even If 0 Sales Today</span>
                   </label>
 
                   <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -1250,7 +1250,7 @@ export default function ShopSettings() {
                       onChange={(e) => setAutoReport({ ...autoReport, enabled: e.target.checked })}
                       className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                     />
-                    <span>24H Auto Email Dispatch Active (24 घंटे ऑटो रिपोर्ट चालू)</span>
+                    <span>24H Auto Email Dispatch Active</span>
                   </label>
                 </div>
 
@@ -1264,7 +1264,7 @@ export default function ShopSettings() {
                     className="w-full sm:w-auto h-11 px-6 font-bold border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-xl cursor-pointer gap-2"
                   >
                     <Send className={`h-4 w-4 ${isAutoReportTriggering ? 'animate-spin' : ''}`} />
-                    {isAutoReportTriggering ? "Sending Email Report..." : "Send Test Report Email Now (अभी रिपोर्ट ईमेल भेजें)"}
+                    {isAutoReportTriggering ? "Sending Email Report..." : "Send Test Report Email Now"}
                   </Button>
 
                   <Button
