@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { truncate20 } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingCart, Package, TrendingUp, AlertTriangle, IndianRupee } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
@@ -286,8 +287,8 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-0">
              {/* Desktop Table View */}
-             <div className="hidden md:block overflow-x-auto">
-               <table className="w-full">
+             <div className="hidden md:block overflow-x-auto custom-scrollbar w-full block scroll-smooth">
+               <table className="w-full min-w-[600px]">
                  <thead className="bg-slate-50/50">
                     <tr>
                       <th className="px-6 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Bill #</th>
@@ -300,7 +301,9 @@ export default function Dashboard() {
                     {recentSales.map((sale) => (
                       <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4 text-[11px] font-black text-slate-800">{sale.invoiceNumber}</td>
-                        <td className="px-6 py-4 text-[10px] font-bold text-slate-500">{sale.customerName || 'Walk-in'}</td>
+                        <td className="px-6 py-4 text-[10px] font-bold text-slate-500 cursor-help" title={sale.customerName || 'Walk-in'}>
+                          {truncate20(sale.customerName || 'Walk-in', 20)}
+                        </td>
                         <td className="px-6 py-4">
                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${sale.paymentMode === 'upi' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
                              {sale.paymentMode}
