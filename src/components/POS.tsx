@@ -633,26 +633,31 @@ export default function POS() {
     const resumedBill = currentHeld[index];
     if (!resumedBill || resumedBill.length === 0) return;
 
-    setCart(prev => {
-      const mergedCart = [...prev];
-      resumedBill.forEach(resItem => {
-        const existingIdx = mergedCart.findIndex(item => item.id === resItem.id);
-        if (existingIdx > -1) {
-          // Add quantities together so user modifications are preserved and cumulated
-          mergedCart[existingIdx] = {
-            ...mergedCart[existingIdx],
-            quantity: mergedCart[existingIdx].quantity + resItem.quantity
-          };
-        } else {
-          // Deep-copy resumed item
-          mergedCart.push({ ...resItem });
-        }
-      });
-      return mergedCart;
-    });
+    const currentCart = cartRef.current;
+    const restoredCart = resumedBill.map(item => ({ ...item }));
 
+    if (currentCart && currentCart.length > 0) {
+      // If active cart has items, place active cart on hold so items are kept separate and not merged!
+      const activeCartCopy = currentCart.map(item => ({ ...item }));
+      setHeldBills(prevHeld => {
+        const updatedHeld = prevHeld.filter((_, i) => i !== index);
+        updatedHeld.push(activeCartCopy);
+        return updatedHeld;
+      });
+      toast.success("Active cart placed on hold & selected bill resumed!");
+    } else {
+      // Active cart is empty: simply remove resumed bill from held list
+      setHeldBills(prevHeld => prevHeld.filter((_, i) => i !== index));
+      toast.success("Bill resumed successfully!");
+    }
+
+    // Set cart strictly to restored bill items (never merge!)
+    setCart(restoredCart);
+  };
+
+  const handleDiscardHeldBill = (index: number) => {
     setHeldBills(prevHeld => prevHeld.filter((_, i) => i !== index));
-    toast.success("Bill resumed & merged with active cart successfully!");
+    toast.info("Held bill deleted");
   };
 
   const buildReceiptHTML = (sale: Sale) => {
@@ -1700,20 +1705,41 @@ export default function POS() {
                 <PlayCircle className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-bold uppercase tracking-wider text-slate-600">Held Bills ({heldBills.length})</h4>
               </div>
-              <div className="space-y-3 max-h-[120px] overflow-y-auto custom-scrollbar pr-1.5">
-                {heldBills.map((bill, i) => (
-                  bill && (
+              <div className="space-y-3 max-h-[140px] overflow-y-auto custom-scrollbar pr-1.5">
+                {heldBills.map((bill, i) => {
+                  if (!bill) return null;
+                  const totalAmt = bill.reduce((sum, item) => sum + ((item.sellingPrice || 0) * (item.quantity || 1)), 0);
+                  return (
                     <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-800">Bill #{i + 1}</span>
-                        <span className="text-[10px] text-slate-400">{bill.length} Items</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-black text-slate-800">Bill #{i + 1}</span>
+                        <span className="text-[10px] font-semibold text-slate-500">
+                          {bill.length} {bill.length === 1 ? 'item' : 'items'} • <span className="font-mono text-emerald-600 font-bold">₹{totalAmt.toFixed(2)}</span>
+                        </span>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10" onClick={() => handleResumeBill(i)}>
-                        Resume
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-2.5 text-xs font-extrabold text-primary hover:bg-primary/10 rounded-lg" 
+                          onClick={() => handleResumeBill(i)}
+                          title="Resume this bill"
+                        >
+                          Resume
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          onClick={() => handleDiscardHeldBill(i)}
+                          title="Discard held bill"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  )
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
