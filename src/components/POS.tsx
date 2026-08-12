@@ -97,6 +97,24 @@ const loadWorkspaceHeldBills = (ws?: string): CartItem[][] => {
   }
 };
 
+const saveWorkspaceCart = (cartItems: CartItem[], ws?: string) => {
+  try {
+    const key = getWorkspaceCartKey(ws);
+    localStorage.setItem(key, JSON.stringify(cartItems));
+  } catch (e) {
+    console.error("Failed to save workspace cart", e);
+  }
+};
+
+const saveWorkspaceHeldBills = (bills: CartItem[][], ws?: string) => {
+  try {
+    const key = getWorkspaceHeldBillsKey(ws);
+    localStorage.setItem(key, JSON.stringify(bills));
+  } catch (e) {
+    console.error("Failed to save workspace held bills", e);
+  }
+};
+
 export default function POS() {
   const [lang, setLang] = useState<LanguageType>(() => {
     return (localStorage.getItem('retailpro_lang') as LanguageType) || 'en';
@@ -623,7 +641,10 @@ export default function POS() {
     }
     // Deep copy current items in the cart to avoid any reference sharing or async side-effect overwrites
     const cartCopy = currentCart.map(item => ({ ...item }));
-    setHeldBills(prevHeld => [...prevHeld, cartCopy]);
+    const nextHeld = [...heldBillsRef.current, cartCopy];
+    saveWorkspaceHeldBills(nextHeld);
+    setHeldBills(nextHeld);
+    saveWorkspaceCart([]);
     setCart([]);
     toast.success("Bill placed on hold!");
   };
@@ -636,27 +657,32 @@ export default function POS() {
     const currentCart = cartRef.current;
     const restoredCart = resumedBill.map(item => ({ ...item }));
 
+    let nextHeld: CartItem[][] = [];
+
     if (currentCart && currentCart.length > 0) {
-      // If active cart has items, place active cart on hold so items are kept separate and not merged!
+      // Active cart has items: save active cart as new held bill and remove resumed bill
       const activeCartCopy = currentCart.map(item => ({ ...item }));
-      setHeldBills(prevHeld => {
-        const updatedHeld = prevHeld.filter((_, i) => i !== index);
-        updatedHeld.push(activeCartCopy);
-        return updatedHeld;
-      });
-      toast.success("Active cart placed on hold & selected bill resumed!");
+      nextHeld = currentHeld.filter((_, i) => i !== index);
+      nextHeld.push(activeCartCopy);
+      toast.success("Active cart saved to Held Bills & selected bill resumed!");
     } else {
       // Active cart is empty: simply remove resumed bill from held list
-      setHeldBills(prevHeld => prevHeld.filter((_, i) => i !== index));
+      nextHeld = currentHeld.filter((_, i) => i !== index);
       toast.success("Bill resumed successfully!");
     }
 
-    // Set cart strictly to restored bill items (never merge!)
+    // Save synchronously to localStorage before setting state so no subscribers read stale held bills
+    saveWorkspaceHeldBills(nextHeld);
+    setHeldBills(nextHeld);
+
+    saveWorkspaceCart(restoredCart);
     setCart(restoredCart);
   };
 
   const handleDiscardHeldBill = (index: number) => {
-    setHeldBills(prevHeld => prevHeld.filter((_, i) => i !== index));
+    const nextHeld = heldBillsRef.current.filter((_, i) => i !== index);
+    saveWorkspaceHeldBills(nextHeld);
+    setHeldBills(nextHeld);
     toast.info("Held bill deleted");
   };
 
@@ -1707,17 +1733,23 @@ export default function POS() {
               </div>
               <div className="space-y-3 max-h-[140px] overflow-y-auto custom-scrollbar pr-1.5">
                 {heldBills.map((bill, i) => {
-                  if (!bill) return null;
+                  if (!bill || bill.length === 0) return null;
                   const totalAmt = bill.reduce((sum, item) => sum + ((item.sellingPrice || 0) * (item.quantity || 1)), 0);
+                  const totalPcs = bill.reduce((sum, item) => sum + (item.quantity || 1), 0);
+                  const firstItemName = bill[0]?.name || 'Item';
+                  const summaryText = bill.length > 1 ? `${firstItemName} (+${bill.length - 1} more)` : firstItemName;
+
                   return (
                     <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-black text-slate-800">Bill #{i + 1}</span>
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <span className="text-xs font-black text-slate-800 truncate max-w-[150px]" title={summaryText}>
+                          {summaryText}
+                        </span>
                         <span className="text-[10px] font-semibold text-slate-500">
-                          {bill.length} {bill.length === 1 ? 'item' : 'items'} • <span className="font-mono text-emerald-600 font-bold">₹{totalAmt.toFixed(2)}</span>
+                          Hold #{i + 1} • {totalPcs} pcs • <span className="font-mono text-emerald-600 font-bold">₹{totalAmt.toFixed(2)}</span>
                         </span>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <Button 
                           variant="ghost" 
                           size="sm" 
