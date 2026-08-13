@@ -251,6 +251,35 @@ function resolveValueExpr(valStr: string, row: any, params: any[]): any {
   return undefined;
 }
 
+function compareValues(a: any, b: any): number {
+  if (a === undefined || a === null) return -1;
+  if (b === undefined || b === null) return 1;
+
+  if (typeof a === 'number' && typeof b === 'number') {
+    return a - b;
+  }
+
+  const strA = String(a).trim();
+  const strB = String(b).trim();
+
+  // If ISO date strings or Date parseable strings containing date delimiters
+  if ((strA.includes('T') || strA.includes('-')) && (strB.includes('T') || strB.includes('-'))) {
+    const parseA = Date.parse(strA);
+    const parseB = Date.parse(strB);
+    if (!isNaN(parseA) && !isNaN(parseB)) {
+      return parseA - parseB;
+    }
+  }
+
+  const numA = Number(strA);
+  const numB = Number(strB);
+  if (!isNaN(numA) && !isNaN(numB) && strA !== '' && strB !== '') {
+    return numA - numB;
+  }
+
+  return strA.localeCompare(strB);
+}
+
 function evaluateCondition(exprStr: string, row: any, params: any[]): boolean {
   let str = exprStr.trim();
   if (str === '') return true;
@@ -298,21 +327,21 @@ function evaluateCondition(exprStr: string, row: any, params: any[]): boolean {
       if (leftVal === undefined || leftVal === null || rightVal === undefined || rightVal === null) {
         return false;
       }
-      return String(leftVal) === String(rightVal);
+      return String(leftVal).trim().toLowerCase() === String(rightVal).trim().toLowerCase();
     case '!=':
     case '<>':
       if (leftVal === undefined || leftVal === null || rightVal === undefined || rightVal === null) {
         return leftVal !== rightVal;
       }
-      return String(leftVal) !== String(rightVal);
+      return String(leftVal).trim().toLowerCase() !== String(rightVal).trim().toLowerCase();
     case '>':
-      return Number(leftVal) > Number(rightVal);
+      return compareValues(leftVal, rightVal) > 0;
     case '<':
-      return Number(leftVal) < Number(rightVal);
+      return compareValues(leftVal, rightVal) < 0;
     case '>=':
-      return Number(leftVal) >= Number(rightVal);
+      return compareValues(leftVal, rightVal) >= 0;
     case '<=':
-      return Number(leftVal) <= Number(rightVal);
+      return compareValues(leftVal, rightVal) <= 0;
     case 'LIKE': {
       const l = String(leftVal || '').toLowerCase();
       const r = String(rightVal || '').toLowerCase().replace(/%/g, '');
@@ -496,38 +525,17 @@ class PureJSSQLite {
   }
 
   public sanitize() {
-    const dummyOwners = ['admin@dobill.com', 'default', 'casher', 'cashier', ''];
     if (this.data['app_users']) {
-      this.data['app_users'] = this.data['app_users'].filter((u: any) => {
-        const em = (u.email || '').trim().toLowerCase();
-        const owner = (u.workspace_owner || '').trim().toLowerCase();
-        return em && !dummyOwners.includes(em) && !dummyOwners.includes(owner);
-      });
+      this.data['app_users'] = this.data['app_users'].filter((u: any) => u && u.email && String(u.email).trim());
     }
     if (this.data['products']) {
-      this.data['products'] = this.data['products'].filter((p: any) => {
-        const owner = (p.workspace_owner || '').trim().toLowerCase();
-        return owner && !dummyOwners.includes(owner);
-      });
+      this.data['products'] = this.data['products'].filter((p: any) => p && (p.id || p.product_id || p.name));
     }
     if (this.data['sales']) {
-      this.data['sales'] = this.data['sales'].filter((s: any) => {
-        const owner = (s.workspace_owner || '').trim().toLowerCase();
-        return owner && !dummyOwners.includes(owner);
-      });
+      this.data['sales'] = this.data['sales'].filter((s: any) => s && (s.id || s.invoiceNumber));
     }
     if (this.data['purchases']) {
-      this.data['purchases'] = this.data['purchases'].filter((p: any) => {
-        const owner = (p.workspace_owner || '').trim().toLowerCase();
-        return owner && !dummyOwners.includes(owner);
-      });
-    }
-    if (this.data['tenant_config']) {
-      this.data['tenant_config'] = this.data['tenant_config'].filter((c: any) => {
-        const owner = (c.workspace_owner || '').trim().toLowerCase();
-        const key = (c.key || '').trim();
-        return owner && !dummyOwners.includes(owner) && key !== 'casherPin' && key !== 'casherEnabled';
-      });
+      this.data['purchases'] = this.data['purchases'].filter((p: any) => p && p.id);
     }
     this.saveSync();
   }
@@ -4539,12 +4547,27 @@ Thank you for choosing DO BILL.
         startDate.setHours(0, 0, 0, 0);
       }
 
-      const sIso = startDate.toISOString();
-      const eIso = endDate.toISOString();
+      // Fetch Sales robustly across date ranges and workspace owners
+      let sales: any[] = [];
+      try {
+        const allSales = db.prepare('SELECT * FROM sales').all() as any[];
+        const targetOwner = (owner || '').trim().toLowerCase();
 
-      // Fetch Sales
-      const sales = db.prepare('SELECT * FROM sales WHERE workspace_owner = ? AND createdAt >= ? AND createdAt <= ? ORDER BY createdAt DESC')
-                      .all(owner, sIso, eIso) as any[];
+        sales = allSales.filter((s: any) => {
+          const sOwner = (s.workspace_owner || '').trim().toLowerCase();
+          const matchesOwner = !targetOwner || targetOwner === 'default' || sOwner === targetOwner || !sOwner;
+          if (!matchesOwner) return false;
+
+          if (!s.createdAt) return false;
+          const sTime = Date.parse(s.createdAt);
+          if (isNaN(sTime)) return false;
+
+          return sTime >= startDate.getTime() && sTime <= endDate.getTime();
+        });
+      } catch (err) {
+        console.error("[Report Engine] Sales query error:", err);
+        sales = [];
+      }
 
       let totalSales = 0;
       let totalTax = 0;
@@ -5096,11 +5119,19 @@ Thank you for choosing DO BILL.
   // Background Scheduler Loop for Auto Email Reporting (Runs every 60 seconds)
   setInterval(async () => {
     try {
-      const owners = db.prepare(`
+      let ownersList = db.prepare(`
+        SELECT DISTINCT workspace_owner FROM sales WHERE workspace_owner IS NOT NULL AND workspace_owner != ''
+        UNION
+        SELECT DISTINCT workspace_owner FROM products WHERE workspace_owner IS NOT NULL AND workspace_owner != ''
+        UNION
         SELECT DISTINCT workspace_owner FROM app_users WHERE workspace_owner IS NOT NULL AND workspace_owner != ''
         UNION
         SELECT DISTINCT workspace_owner FROM tenant_config WHERE workspace_owner IS NOT NULL AND workspace_owner != ''
       `).all() as { workspace_owner: string }[];
+
+      if (!ownersList || ownersList.length === 0) {
+        ownersList = [{ workspace_owner: 'default' }];
+      }
 
       const now = new Date();
       const day = String(now.getDate()).padStart(2, '0');
@@ -5112,7 +5143,7 @@ Thank you for choosing DO BILL.
       const currentMinutes = String(now.getMinutes()).padStart(2, '0');
       const currentTimeStr = `${currentHours}:${currentMinutes}`; // e.g. "23:59"
 
-      for (const { workspace_owner } of owners) {
+      for (const { workspace_owner } of ownersList) {
         if (!workspace_owner) continue;
 
         const configRow = db.prepare("SELECT value FROM tenant_config WHERE key = 'autoReportSettings' AND workspace_owner = ?").get(workspace_owner) as { value: string } | undefined;
@@ -5136,9 +5167,9 @@ Thank you for choosing DO BILL.
         if (settings.enabled !== false) {
           const configuredTime = settings.reportTime || '23:59';
           
-          // Trigger once per day when current time reaches or passes configured daily time (default 23:59)
           const isNotSentToday = settings.lastSentDate !== currentDateStr;
-          const isTimeReached = currentTimeStr >= configuredTime;
+          // Trigger when time is reached or if previous day report was missed (e.g. server was sleeping/idle or tab closed)
+          const isTimeReached = currentTimeStr >= configuredTime || !settings.lastSentDate || settings.lastSentDate < currentDateStr;
 
           if (isNotSentToday && isTimeReached) {
             console.log(`[Auto Report Scheduler] Triggering automatic daily email report at ${currentTimeStr} for workspace owner: ${workspace_owner}`);
