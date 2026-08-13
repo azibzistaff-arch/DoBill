@@ -1377,20 +1377,20 @@ export default function POS() {
       </div>
 
       {/* Order Summary & Payment Section */}
-      <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-4 lg:gap-6 h-full md:min-h-0">
-        <Card className="flex flex-col md:flex-1 overflow-hidden border-none shadow-sm min-h-[300px]">
-          <CardHeader className="py-3 sm:py-4 border-b">
+      <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-3 lg:gap-4 h-full md:min-h-0 overflow-y-auto custom-scrollbar pr-1 pb-2">
+        <Card className="flex flex-col shrink-0 overflow-hidden border-none shadow-sm rounded-2xl bg-white">
+          <CardHeader className="py-3 px-5 border-b">
             <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Order Summary</CardTitle>
           </CardHeader>
-          <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 px-6 py-4">
+          <CardContent className="p-0 flex flex-col min-h-0">
+            <div className="max-h-44 overflow-y-auto custom-scrollbar px-5 py-3 flex-1 min-h-[50px]">
               {cart.length === 0 ? (
-                <div className="h-40 flex flex-col items-center justify-center text-slate-400 gap-2 italic">
-                  <ShoppingCart className="h-8 w-8 opacity-20" />
-                  <span className="text-sm">Cart is empty</span>
+                <div className="py-6 flex flex-col items-center justify-center text-slate-400 gap-1 italic">
+                  <ShoppingCart className="h-6 w-6 opacity-20" />
+                  <span className="text-xs">Cart is empty</span>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {cart.map((item, idx) => {
                     const discPercent = item.discountPercent || 0;
                     const lineSub = item.sellingPrice * item.quantity;
@@ -1398,24 +1398,24 @@ export default function POS() {
                     const lineTotal = taxable * (1 + item.gstPercent / 100);
 
                     return (
-                      <div key={idx} className="flex justify-between gap-3 text-xs sm:text-sm">
+                      <div key={idx} className="flex justify-between gap-3 text-xs">
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="font-semibold text-slate-700 cursor-help" title={item.name}>{truncate20(item.name, 20)}</span>
+                          <span className="font-bold text-slate-700 cursor-help truncate" title={item.name}>{truncate20(item.name, 20)}</span>
                           <span className="text-[10px] text-slate-400 font-medium">
                             ₹{item.sellingPrice.toFixed(2)} x {item.quantity} {item.unit}
                             {discPercent > 0 && <span className="text-red-500 font-bold ml-1">(-{discPercent}%)</span>}
                           </span>
                         </div>
-                        <span className="font-bold text-slate-900 leading-6 shrink-0">₹{lineTotal.toFixed(2)}</span>
+                        <span className="font-black text-slate-900 leading-5 shrink-0">₹{lineTotal.toFixed(2)}</span>
                       </div>
                     );
                   })}
                 </div>
               )}
-            </ScrollArea>
+            </div>
             
-            <div className="p-4 sm:p-6 bg-slate-50 border-t space-y-4">
-              <div className="space-y-2">
+            <div className="p-4 bg-slate-50 border-t space-y-3 shrink-0">
+              <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Gross Subtotal</span>
                   <span>₹{(totals.subtotal + totals.discountTotal).toFixed(2)}</span>
@@ -1430,27 +1430,27 @@ export default function POS() {
                   <span>GST (Tax Total)</span>
                   <span>₹{totals.taxTotal.toFixed(2)}</span>
                 </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between text-lg font-black text-slate-900">
+                <Separator className="my-1.5" />
+                <div className="flex justify-between text-base sm:text-lg font-black text-slate-900">
                   <span>Grand Total</span>
                   <span>₹{totals.grandTotal.toFixed(2)}</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pb-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="gap-2 h-10 text-[10px] sm:text-xs font-semibold"
+                  className="gap-1.5 h-9 text-[10px] sm:text-xs font-bold border-slate-200"
                   onClick={handleHoldBill}
                   disabled={cart.length === 0}
                 >
-                  <PauseCircle className="h-4 w-4" /> HOLD
+                  <PauseCircle className="h-3.5 w-3.5 text-amber-600" /> HOLD
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="gap-2 h-10 text-[10px] sm:text-xs font-semibold text-red-500 hover:text-red-600"
+                  className="gap-1.5 h-9 text-[10px] sm:text-xs font-bold text-red-500 hover:text-red-600 border-slate-200"
                   onClick={() => {
                     setCart([]);
                     setCustomerName('');
@@ -1459,7 +1459,7 @@ export default function POS() {
                   }}
                   disabled={cart.length === 0}
                 >
-                  <Trash2 className="h-4 w-4" /> CLEAR
+                  <Trash2 className="h-3.5 w-3.5" /> CLEAR
                 </Button>
               </div>
 
@@ -1476,15 +1476,15 @@ export default function POS() {
                 <Button 
                   disabled={cart.length === 0 || !!getCartStockError(cart)}
                   onClick={tryOpenPaymentModal}
-                  className={`w-full h-12 sm:h-14 text-base sm:text-lg font-black tracking-wider transition-all rounded-xl ${
+                  className={`w-full h-11 sm:h-12 text-sm sm:text-base font-black tracking-wider transition-all rounded-xl ${
                     getCartStockError(cart) 
                       ? 'bg-rose-50 hover:bg-rose-50 text-rose-600 border-2 border-rose-200/80 shadow-none cursor-not-allowed flex items-center justify-center gap-2 opacity-100' 
-                      : 'shadow-lg shadow-slate-900/10 hover:shadow-xl hover:shadow-slate-900/15 active:scale-[0.99] bg-slate-900 text-white hover:bg-slate-800'
+                      : 'shadow-md shadow-slate-900/10 hover:shadow-lg active:scale-[0.99] bg-slate-900 text-white hover:bg-slate-800'
                   }`}
                 >
                   {getCartStockError(cart) ? (
-                    <span className="flex items-center gap-2 font-black tracking-widest uppercase text-sm sm:text-base text-rose-600">
-                      <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 animate-bounce" />
+                    <span className="flex items-center gap-2 font-black tracking-widest uppercase text-xs sm:text-sm text-rose-600">
+                      <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 animate-bounce" />
                       OUT OF STOCK
                     </span>
                   ) : (
@@ -1577,8 +1577,6 @@ export default function POS() {
                               />
                             </div>
                           </div>
-
-
 
                           <div className="p-3.5 bg-[#fbfcfd] border border-blue-100/80 rounded-xl text-[11px] text-slate-500 font-medium leading-relaxed space-y-1 mt-1">
                             <span className="font-bold text-blue-700 flex items-center gap-1">💡 Transaction Data Limit Note:</span>
@@ -1725,13 +1723,18 @@ export default function POS() {
 
         {/* Held Bills Area */}
         {heldBills.length > 0 && (
-          <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 rounded-[2rem]">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <PlayCircle className="h-4 w-4 text-primary" />
-                <h4 className="text-sm font-bold uppercase tracking-wider text-slate-600">Held Bills ({heldBills.length})</h4>
+          <Card className="border-2 border-amber-300/80 bg-amber-50/40 rounded-2xl shrink-0 shadow-sm animate-in fade-in">
+            <CardContent className="p-3.5">
+              <div className="flex items-center justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-2">
+                  <PauseCircle className="h-4 w-4 text-amber-600 animate-pulse" />
+                  <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">Held Bills ({heldBills.length})</h4>
+                </div>
+                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                  Active Holds
+                </span>
               </div>
-              <div className="space-y-3 max-h-[140px] overflow-y-auto custom-scrollbar pr-1.5">
+              <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
                 {heldBills.map((bill, i) => {
                   if (!bill || bill.length === 0) return null;
                   const totalAmt = bill.reduce((sum, item) => sum + ((item.sellingPrice || 0) * (item.quantity || 1)), 0);
@@ -1740,9 +1743,9 @@ export default function POS() {
                   const summaryText = bill.length > 1 ? `${firstItemName} (+${bill.length - 1} more)` : firstItemName;
 
                   return (
-                    <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                    <div key={i} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-amber-200/60 shadow-sm hover:border-amber-400 transition-colors">
                       <div className="flex flex-col min-w-0 pr-2">
-                        <span className="text-xs font-black text-slate-800 truncate max-w-[150px]" title={summaryText}>
+                        <span className="text-xs font-black text-slate-800 truncate max-w-[140px]" title={summaryText}>
                           {summaryText}
                         </span>
                         <span className="text-[10px] font-semibold text-slate-500">
@@ -1753,7 +1756,7 @@ export default function POS() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 px-2.5 text-xs font-extrabold text-primary hover:bg-primary/10 rounded-lg" 
+                          className="h-7 px-2 text-xs font-extrabold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg" 
                           onClick={() => handleResumeBill(i)}
                           title="Resume this bill"
                         >
@@ -1762,7 +1765,7 @@ export default function POS() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                           onClick={() => handleDiscardHeldBill(i)}
                           title="Discard held bill"
                         >
@@ -1777,16 +1780,16 @@ export default function POS() {
           </Card>
         )}
 
-        <div className="mt-auto space-y-2">
-          <div className="flex items-center gap-2 text-slate-400 px-2">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-[10px] uppercase font-bold tracking-widest">Keyboard Shortcuts</span>
+        <div className="shrink-0 space-y-1.5 p-3 bg-slate-100/70 rounded-xl border border-slate-200/60">
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span className="text-[10px] uppercase font-black tracking-wider">Keyboard Shortcuts</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-[9px] font-bold text-slate-500 px-2 uppercase">
-            <div className="flex justify-between border-b pb-1"><span>F1</span> <span>Search</span></div>
-            <div className="flex justify-between border-b pb-1"><span>F9</span> <span>Hold Bill</span></div>
-            <div className="flex justify-between border-b pb-1"><span>F10</span> <span>Payment</span></div>
-            <div className="flex justify-between border-b pb-1"><span>DEL</span> <span>Clear Cart</span></div>
+          <div className="grid grid-cols-2 gap-1.5 text-[9px] font-bold text-slate-600 uppercase">
+            <div className="flex justify-between border-b border-slate-200/80 pb-0.5"><span>F1</span> <span>Search</span></div>
+            <div className="flex justify-between border-b border-slate-200/80 pb-0.5"><span>F9</span> <span>Hold Bill</span></div>
+            <div className="flex justify-between border-b border-slate-200/80 pb-0.5"><span>F10</span> <span>Payment</span></div>
+            <div className="flex justify-between border-b border-slate-200/80 pb-0.5"><span>DEL</span> <span>Clear Cart</span></div>
           </div>
         </div>
       </div>
