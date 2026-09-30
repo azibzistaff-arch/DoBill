@@ -1063,7 +1063,7 @@ export const DirectPrintService = {
 
         // ESC/POS Barcode
         add([0x1B, 0x61, 0x01]); // Ensure center alignment
-        add([0x1D, 0x68, 56]); // Normal standard height (56 dots)
+        add([0x1D, 0x68, 65]); // Zoomed normal height (65 dots)
         add([0x1D, 0x77, 2]);  // Width
         add([0x1D, 0x48, 0x00]); // 0 = Do not print default hardware HRI characters
 
@@ -1189,9 +1189,9 @@ export const DEFAULT_PRINTER_CONFIG: PrinterConfig = {
   billPrinterName: '',
   labelPrinterName: '',
   billPaperWidth: '80mm',
-  labelSize: '50x25',
+  labelSize: '50x30',
   labelCustomWidthMm: 50,
-  labelCustomHeightMm: 25,
+  labelCustomHeightMm: 30,
   silentPrint: false,
   copies: 1,
   autoCutPaper: true,
@@ -1720,9 +1720,9 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     }
     .barcode-container svg {
       width: auto !important;
-      max-width: 88% !important;
+      max-width: 95% !important;
       height: auto !important;
-      max-height: ${Math.max(10, Math.round(h * 0.48))}mm !important;
+      max-height: ${Math.max(14, Math.round(h * 0.58))}mm !important;
       display: block !important;
       margin: 0 auto !important;
       overflow: visible !important;
@@ -1988,4 +1988,3 @@ if (typeof window !== 'undefined' && !isLifecycleListenerRegistered) {
     });
   }
 }
-
