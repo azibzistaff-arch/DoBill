@@ -862,28 +862,17 @@ export default function Inventory() {
             </div>
 
             {/* Print Quantity Controls - Centered */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 max-w-sm mx-auto w-full">
-              <div className="space-y-1.5 text-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Select Quantity</span>
-                <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-                  {[1, 5, 10, 20, 50, 100].map(qty => (
-                    <button
-                      key={qty}
-                      type="button"
-                      onClick={() => setPrintQuantity(qty)}
-                      className={`px-3 py-1.5 text-xs font-black rounded-xl border transition-all ${
-                        printQuantity === qty 
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20' 
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      {qty}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 pt-1">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm max-w-sm mx-auto w-full">
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-xl font-black text-base border-slate-200 hover:bg-slate-100"
+                  onClick={() => setPrintQuantity(prev => Math.max(1, (prev || 1) - 1))}
+                >
+                  -
+                </Button>
                 <Input 
                   type="number" 
                   min={1} 
@@ -908,12 +897,21 @@ export default function Inventory() {
                   placeholder="Qty..."
                   className="h-11 w-24 text-center font-black text-base bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
                 />
-                <div className="text-left">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-xl font-black text-base border-slate-200 hover:bg-slate-100"
+                  onClick={() => setPrintQuantity(prev => Math.min(10000, (prev || 0) + 1))}
+                >
+                  +
+                </Button>
+                <div className="text-left ml-1">
                   <p className="text-xs text-slate-800 font-bold leading-tight">
-                    Custom Print Quantity
+                    Print Copies
                   </p>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    Centered thermal label printing
+                    Centered thermal label
                   </p>
                 </div>
               </div>
