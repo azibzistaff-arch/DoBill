@@ -78,13 +78,13 @@ const generateRandomBarcode5 = (existingProducts?: { id?: string; barcode?: stri
 };
 
 const getBarcodeBarWidth = (code?: string | null) => {
-  if (!code) return 1.4;
+  if (!code) return 1.7;
   const len = code.length;
-  if (len > 18) return 0.9;
-  if (len > 14) return 1.0;
-  if (len > 10) return 1.15;
-  if (len <= 5) return 1.35; // Compact, neat, scannable 5-digit barcode
-  return 1.3;
+  if (len > 18) return 1.0;
+  if (len > 14) return 1.15;
+  if (len > 10) return 1.35;
+  if (len <= 5) return 1.75; // Normal, balanced, easily scannable 5-digit barcode
+  return 1.5;
 };
 
 export default function Inventory() {
@@ -271,13 +271,13 @@ export default function Inventory() {
       clonedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       clonedSvg.removeAttribute('width');
       clonedSvg.removeAttribute('height');
-      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 75% !important; height: auto !important; max-height: 24px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
+      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 88% !important; height: auto !important; max-height: 32px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
       svgHTML = clonedSvg.outerHTML;
     }
 
     if (!svgHTML && selectedBarcode) {
       const displayText = formatBarcodeDisplay(selectedBarcode, price);
-      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 9.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">${displayText}</div>`;
+      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 10.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">${displayText}</div>`;
     }
 
     const cards = Array(totalLabels).fill(0).map(() => `
@@ -862,8 +862,8 @@ export default function Inventory() {
                           value={selectedBarcode} 
                           text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
                           width={getBarcodeBarWidth(selectedBarcode)}
-                          height={24} 
-                          fontSize={9.5}
+                          height={32} 
+                          fontSize={10.5}
                           background="transparent"
                           margin={2}
                         />
