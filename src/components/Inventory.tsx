@@ -47,12 +47,17 @@ import { toast } from 'sonner';
 import Barcode from 'react-barcode/lib/react-barcode.js';
 import { getCurrentUserRole, defineAbilityFor } from '@/services/abilityService';
 
+const generateRandomBarcode5 = (): string => {
+  return String(Math.floor(10000 + Math.random() * 90000));
+};
+
 const getBarcodeBarWidth = (code?: string | null) => {
-  if (!code) return 1.8;
+  if (!code) return 2.0;
   const len = code.length;
   if (len > 18) return 1.0;
   if (len > 14) return 1.15;
   if (len > 10) return 1.35;
+  if (len <= 5) return 2.2; // Bold and clear for 5-digit barcodes
   return 1.8; // Bold, sharp lines for <=8-digit barcodes
 };
 
@@ -225,12 +230,12 @@ export default function Inventory() {
       clonedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       clonedSvg.removeAttribute('width');
       clonedSvg.removeAttribute('height');
-      clonedSvg.setAttribute('style', 'width: 100% !important; max-width: 100% !important; height: auto !important; max-height: 100% !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
+      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 95% !important; height: auto !important; max-height: 100% !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
       svgHTML = clonedSvg.outerHTML;
     }
 
     if (!svgHTML && selectedBarcode) {
-      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 900; font-size: 11pt; color: #000; letter-spacing: 2px;">*${selectedBarcode}*</div>`;
+      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 900; font-size: 11pt; color: #000; letter-spacing: 2px; margin: 0 auto;">*${selectedBarcode}*</div>`;
     }
 
     const cards = Array(totalLabels).fill(0).map(() => `
@@ -343,7 +348,7 @@ export default function Inventory() {
               <Button 
                 onClick={() => setEditingProduct({ 
                   name: '',
-                  barcode: String(Math.floor(10000000 + Math.random() * 90000000)),
+                  barcode: generateRandomBarcode5(),
                   brand: '',
                   category: '',
                   purchasePrice: undefined,
@@ -382,25 +387,25 @@ export default function Inventory() {
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                       Barcode (Machine Scan)
-                      <Badge variant="outline" className="text-[8px] h-4 bg-emerald-50 text-emerald-600 border-emerald-100 uppercase tracking-widest">Max 8 Chars</Badge>
+                      <Badge variant="outline" className="text-[8px] h-4 bg-emerald-50 text-emerald-600 border-emerald-100 uppercase tracking-widest">5-Digit Barcode</Badge>
                     </Label>
                     <button
                       type="button"
                       onClick={() => setEditingProduct({
                         ...editingProduct!,
-                        barcode: String(Math.floor(10000000 + Math.random() * 90000000))
+                        barcode: generateRandomBarcode5()
                       })}
                       className="text-[10px] font-black text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 cursor-pointer transition-all"
                     >
-                      ⚡ Auto 8-Digit
+                      ⚡ Auto 5-Digit
                     </button>
                   </div>
                   <Input 
-                    placeholder="Scan or enter barcode (e.g. 89012345)..."
-                    maxLength={8}
+                    placeholder="Scan or enter barcode (e.g. 54321)..."
+                    maxLength={20}
                     className="h-12 text-base font-mono font-bold border-slate-200"
                     value={editingProduct?.barcode ?? ''} 
-                    onChange={e => setEditingProduct({...editingProduct!, barcode: e.target.value.substring(0, 8)})}
+                    onChange={e => setEditingProduct({...editingProduct!, barcode: e.target.value})}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -582,7 +587,7 @@ export default function Inventory() {
                     {truncate20(p.name, 20)}
                   </div>
                   <div className="text-xs text-slate-400 mb-1.5 cursor-help" title={p.brand || ''}>{truncate20(p.brand || '', 20)}</div>
-                  {p.barcode && (
+                  {p.barcode ? (
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/50">
                         {p.barcode}
@@ -596,6 +601,23 @@ export default function Inventory() {
                         <BarcodeIcon className="h-3 w-3 mr-1" /> Label
                       </Button>
                     </div>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="xs" 
+                      className="h-5 px-1.5 text-[8px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter border border-blue-200"
+                      onClick={async () => {
+                        const newBarcode = generateRandomBarcode5();
+                        const updated = { ...p, barcode: newBarcode };
+                        await DataService.saveProduct(updated);
+                        await refreshProducts();
+                        setSelectedBarcode(newBarcode);
+                        setIsBarcodeViewOpen(true);
+                        toast.success(`Generated 5-digit barcode: ${newBarcode}`);
+                      }}
+                    >
+                      + 5-Digit Barcode
+                    </Button>
                   )}
                 </TableCell>
                 <TableCell>
@@ -670,15 +692,36 @@ export default function Inventory() {
               <p className="text-xs text-slate-400 font-semibold mt-0.5" title={p.brand || ''}>{truncate20(p.brand || 'No Brand', 20)}</p>
 
               <div className="flex items-center gap-2 mt-2">
-                <span className="font-mono text-[10px] font-bold text-slate-500">{p.barcode}</span>
-                <Button 
-                  variant="ghost" 
-                  size="xs" 
-                  className="h-5 px-1.5 text-[8.5px] bg-slate-100 hover:bg-slate-200 uppercase font-black tracking-tighter rounded"
-                  onClick={() => { setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
-                >
-                  <BarcodeIcon className="h-3 w-3 mr-1" /> Label
-                </Button>
+                {p.barcode ? (
+                  <>
+                    <span className="font-mono text-[10px] font-bold text-slate-500">{p.barcode}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="xs" 
+                      className="h-5 px-1.5 text-[8.5px] bg-slate-100 hover:bg-slate-200 uppercase font-black tracking-tighter rounded"
+                      onClick={() => { setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
+                    >
+                      <BarcodeIcon className="h-3 w-3 mr-1" /> Label
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    size="xs" 
+                    className="h-5 px-1.5 text-[8.5px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter rounded border border-blue-200"
+                    onClick={async () => {
+                      const newBarcode = generateRandomBarcode5();
+                      const updated = { ...p, barcode: newBarcode };
+                      await DataService.saveProduct(updated);
+                      await refreshProducts();
+                      setSelectedBarcode(newBarcode);
+                      setIsBarcodeViewOpen(true);
+                      toast.success(`Generated 5-digit barcode: ${newBarcode}`);
+                    }}
+                  >
+                    + 5-Digit Barcode
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -730,121 +773,147 @@ export default function Inventory() {
 
       {/* Barcode Label Dialog */}
       <Dialog open={isBarcodeViewOpen} onOpenChange={setIsBarcodeViewOpen}>
-        <DialogContent className="sm:max-w-2xl lg:max-w-3xl p-0 overflow-hidden max-h-[90vh] flex flex-col rounded-3xl border-0 shadow-2xl">
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden max-h-[90vh] flex flex-col rounded-3xl border-0 shadow-2xl">
           <DialogHeader className="p-6 pb-4 border-b shrink-0 bg-white">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2.5 text-slate-800">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                <BarcodeIcon className="h-5 w-5" />
+            <DialogTitle className="text-xl font-bold flex items-center justify-between text-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <BarcodeIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-base sm:text-lg font-black text-slate-800 leading-snug">Barcode Label Generator</div>
+                  <div className="text-xs font-semibold text-slate-400">Centered Thermal Label • 5-Digit Barcode</div>
+                </div>
               </div>
-              Barcode Label Generator
             </DialogTitle>
           </DialogHeader>
 
-          <div className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1 bg-slate-50/50">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Label Preview */}
-              <div className="md:col-span-5 flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm relative group">
-                <div className="absolute top-3 right-3">
-                  <Badge variant="outline" className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-slate-200">
-                    Live Preview
-                  </Badge>
-                </div>
-                
-                {selectedBarcode && (() => {
-                  const cfg = getPrinterConfig();
-                  const dims = detectAutoLabelDimensions(cfg.labelPrinterName || cfg.billPrinterName);
-                  return (
+          <div className="p-6 space-y-6 overflow-y-auto flex-1 bg-slate-50/50">
+            {/* Prominently Centered Label Preview */}
+            <div className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm relative group mx-auto w-full max-w-sm">
+              <div className="absolute top-3 right-3">
+                <Badge variant="outline" className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-slate-200">
+                  Live Preview
+                </Badge>
+              </div>
+              
+              {selectedBarcode && (() => {
+                const cfg = getPrinterConfig();
+                const dims = detectAutoLabelDimensions(cfg.labelPrinterName || cfg.billPrinterName);
+                const currProd = products.find(p => p.barcode === selectedBarcode);
+                return (
+                  <div className="flex flex-col items-center justify-center w-full">
                     <div 
                       id="printable-label-area" 
                       style={{
                         aspectRatio: `${dims.widthMm} / ${dims.heightMm}`,
                       }}
-                      className="bg-white p-2 rounded-xl shadow-md border border-slate-300 overflow-visible max-w-[260px] w-full flex flex-col items-center justify-center gap-1.5 text-center mt-2 transition-all duration-300 min-h-[120px]"
+                      className="bg-white p-3 rounded-xl shadow-md border border-slate-300 overflow-visible max-w-[240px] w-full flex flex-col items-center justify-center gap-1.5 text-center my-2 transition-all duration-300 min-h-[110px]"
                     >
-                      <div className="name line-clamp-2 w-full text-center font-black text-[10px] sm:text-xs text-slate-900 px-1 leading-tight">
-                        {products.find(p => p.barcode === selectedBarcode)?.name || 'Product'}
+                      <div className="name line-clamp-2 w-full text-center font-black text-xs text-slate-900 px-1 leading-tight">
+                        {currProd?.name || 'Product'}
                       </div>
                       <div className="barcode-container flex justify-center items-center w-full py-0.5 overflow-visible">
                         <Barcode 
                           value={selectedBarcode} 
                           width={getBarcodeBarWidth(selectedBarcode)}
-                          height={36} 
-                          fontSize={10}
+                          height={38} 
+                          fontSize={11}
                           background="transparent"
                           margin={3}
                         />
                       </div>
+                      {currProd?.sellingPrice !== undefined && (
+                        <div className="text-[11px] font-black text-slate-800 tracking-tight">
+                          ₹{currProd.sellingPrice.toFixed(2)}
+                        </div>
+                      )}
                     </div>
-                  );
-                })()}
-                <p className="mt-4 text-[10px] text-slate-400 font-bold uppercase tracking-[0.15em] text-center">
-                  Thermal Sticker • {shopName}
-                </p>
+
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {selectedBarcode}
+                      </span>
+                      {currProd && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const newCode = generateRandomBarcode5();
+                            const updated = { ...currProd, barcode: newCode };
+                            await DataService.saveProduct(updated);
+                            await refreshProducts();
+                            setSelectedBarcode(newCode);
+                            toast.success(`Generated new 5-digit barcode: ${newCode}`);
+                          }}
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          ⚡ Random 5-Digit Barcode
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+              <p className="mt-3 text-[10px] text-slate-400 font-bold uppercase tracking-[0.15em] text-center">
+                Thermal Sticker • Centered • {shopName}
+              </p>
+            </div>
+
+            {/* Print Quantity Controls - Centered */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 max-w-sm mx-auto w-full">
+              <div className="space-y-1.5 text-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Select Quantity</span>
+                <div className="flex flex-wrap justify-center gap-1.5 pt-1">
+                  {[1, 5, 10, 20, 50, 100].map(qty => (
+                    <button
+                      key={qty}
+                      type="button"
+                      onClick={() => setPrintQuantity(qty)}
+                      className={`px-3 py-1.5 text-xs font-black rounded-xl border transition-all ${
+                        printQuantity === qty 
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20' 
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {qty}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Right Column: Settings & Printing Controls */}
-              <div className="md:col-span-7 space-y-4">
-                <div className="space-y-3">
-                  {/* Quick Presets */}
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Select</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[1, 5, 10, 50, 100, 200, 500, 1000].map(qty => (
-                        <button
-                          key={qty}
-                          type="button"
-                          onClick={() => setPrintQuantity(qty)}
-                          className={`px-3 py-1.5 text-xs font-black rounded-xl border transition-all ${
-                            printQuantity === qty 
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20' 
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          {qty}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2.5 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <Input 
-                        type="number" 
-                        min={1} 
-                        max={10000} 
-                        value={printQuantity || ''} 
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (val === '') {
-                            setPrintQuantity(0);
-                          } else {
-                            const num = parseInt(val, 10);
-                            if (!isNaN(num)) {
-                              setPrintQuantity(Math.max(1, num));
-                            }
-                          }
-                        }}
-                        onBlur={() => {
-                          if (!printQuantity || printQuantity < 1) {
-                            setPrintQuantity(1);
-                          }
-                        }}
-                        placeholder="Qty..."
-                        className="h-11 w-28 text-center font-black text-base bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-800 font-bold leading-tight">
-                          Custom Print Quantity
-                        </p>
-                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                          Printing <strong>{printQuantity}</strong> {printQuantity === 1 ? 'label' : 'labels'} with auto-fit thermal engine.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+              <div className="flex items-center justify-center gap-3 pt-1">
+                <Input 
+                  type="number" 
+                  min={1} 
+                  max={10000} 
+                  value={printQuantity || ''} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setPrintQuantity(0);
+                    } else {
+                      const num = parseInt(val, 10);
+                      if (!isNaN(num)) {
+                        setPrintQuantity(Math.max(1, num));
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!printQuantity || printQuantity < 1) {
+                      setPrintQuantity(1);
+                    }
+                  }}
+                  placeholder="Qty..."
+                  className="h-11 w-24 text-center font-black text-base bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
+                />
+                <div className="text-left">
+                  <p className="text-xs text-slate-800 font-bold leading-tight">
+                    Custom Print Quantity
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Centered thermal label printing
+                  </p>
                 </div>
-
-
               </div>
             </div>
           </div>
