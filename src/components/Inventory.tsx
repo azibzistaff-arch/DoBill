@@ -78,13 +78,13 @@ const generateRandomBarcode5 = (existingProducts?: { id?: string; barcode?: stri
 };
 
 const getBarcodeBarWidth = (code?: string | null) => {
-  if (!code) return 1.7;
+  if (!code) return 2.0;
   const len = code.length;
   if (len > 18) return 1.0;
-  if (len > 14) return 1.15;
-  if (len > 10) return 1.35;
-  if (len <= 5) return 1.75; // Normal, balanced, easily scannable 5-digit barcode
-  return 1.5;
+  if (len > 14) return 1.2;
+  if (len > 10) return 1.4;
+  if (len <= 5) return 2.1; // Zoomed, bold, easily scannable 5-digit barcode on 50x30mm
+  return 1.8;
 };
 
 export default function Inventory() {
@@ -271,13 +271,13 @@ export default function Inventory() {
       clonedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       clonedSvg.removeAttribute('width');
       clonedSvg.removeAttribute('height');
-      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 88% !important; height: auto !important; max-height: 32px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
+      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 95% !important; height: auto !important; max-height: 48px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
       svgHTML = clonedSvg.outerHTML;
     }
 
     if (!svgHTML && selectedBarcode) {
       const displayText = formatBarcodeDisplay(selectedBarcode, price);
-      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 10.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">${displayText}</div>`;
+      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 11.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">${displayText}</div>`;
     }
 
     const cards = Array(totalLabels).fill(0).map(() => `
@@ -850,9 +850,9 @@ export default function Inventory() {
                     <div 
                       id="printable-label-area" 
                       style={{
-                        aspectRatio: `${dims.widthMm} / ${dims.heightMm}`,
+                        aspectRatio: `${dims.widthMm || 50} / ${dims.heightMm || 30}`,
                       }}
-                      className="bg-white p-3 rounded-xl shadow-md border border-slate-300 overflow-visible max-w-[240px] w-full flex flex-col items-center justify-center gap-1.5 text-center my-2 transition-all duration-300 min-h-[110px]"
+                      className="bg-white p-3 rounded-xl shadow-md border border-slate-300 overflow-visible max-w-[260px] w-full flex flex-col items-center justify-center gap-1.5 text-center my-2 transition-all duration-300 min-h-[135px]"
                     >
                       <div className="name line-clamp-2 w-full text-center font-black text-xs text-slate-900 px-1 leading-tight">
                         {currProd?.name || 'Product'}
@@ -862,8 +862,8 @@ export default function Inventory() {
                           value={selectedBarcode} 
                           text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
                           width={getBarcodeBarWidth(selectedBarcode)}
-                          height={32} 
-                          fontSize={10.5}
+                          height={44} 
+                          fontSize={11.5}
                           background="transparent"
                           margin={2}
                         />
@@ -895,7 +895,7 @@ export default function Inventory() {
                 );
               })()}
               <p className="mt-3 text-[10px] text-slate-400 font-bold uppercase tracking-[0.15em] text-center">
-                Thermal Sticker • Centered • {shopName}
+                Thermal Sticker • 50mm x 30mm (Centered) • {shopName}
               </p>
             </div>
 
@@ -1006,4 +1006,3 @@ export default function Inventory() {
     </div>
   );
 }
-
