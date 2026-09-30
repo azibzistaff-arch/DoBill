@@ -245,8 +245,8 @@ export const PrinterPickerModal: React.FC<PrinterPickerModalProps> = ({ open, on
               <rect x="86" y="0" width="4" height="30" fill="#000"/>
               <rect x="93" y="0" width="2" height="30" fill="#000"/>
             </svg>
+            <div style="font-family: monospace; font-size: 8.5pt; font-weight: 800; letter-spacing: 1px; margin-top: 2px;">243 - 499 - 12</div>
           </div>
-          <div class="price">₹499.00</div>
         </div>
       `;
       const html = buildBarcodeLabelHTML(labelCardHTML, printerConfig.labelPrinterName || printerConfig.billPrinterName);
