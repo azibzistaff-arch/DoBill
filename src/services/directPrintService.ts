@@ -1042,7 +1042,7 @@ export const DirectPrintService = {
 
         // ESC/POS Barcode
         add([0x1B, 0x61, 0x01]); // Ensure center alignment
-        add([0x1D, 0x68, 65]); // Height
+        add([0x1D, 0x68, 44]); // Compact height (44 dots)
         add([0x1D, 0x77, 2]);  // Width
         add([0x1D, 0x66, 2]);  // Text below
         add([0x1D, 0x48, 0x02]); // Position of HRI characters (2 = below barcode)
@@ -1508,12 +1508,12 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     }
     @page {
       size: ${w}mm ${h}mm !important;
-      margin: 0 auto !important;
+      margin: 0 !important;
     }
     @media print {
       @page {
         size: ${w}mm ${h}mm !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
       }
       html, body {
         width: 100% !important;
@@ -1521,7 +1521,6 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         max-width: 100% !important;
         height: auto !important;
         min-height: 0 !important;
-        max-height: none !important;
         margin: 0 auto !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -1546,11 +1545,31 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         justify-content: center !important;
         text-align: center !important;
       }
+      .print-page {
+        width: 100% !important;
+        min-height: ${h}mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        box-sizing: border-box !important;
+      }
+      .print-page:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
       .label-card {
         width: ${w}mm !important;
         height: ${h}mm !important;
         min-width: ${w}mm !important;
-        max-width: ${w}mm !important;
+        max-width: 100% !important;
         min-height: ${h}mm !important;
         max-height: ${h}mm !important;
         margin: 0 auto !important;
@@ -1566,6 +1585,10 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+      }
+      .print-page .label-card {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
       .label-card:last-child {
         page-break-after: avoid !important;
@@ -1600,11 +1623,23 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       justify-content: center !important;
       text-align: center !important;
     }
+    .print-page {
+      width: 100% !important;
+      min-height: ${h}mm !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      box-sizing: border-box !important;
+    }
     .label-card {
       width: ${w}mm !important;
       height: ${h}mm !important;
       min-width: ${w}mm !important;
-      max-width: ${w}mm !important;
+      max-width: 100% !important;
       min-height: ${h}mm !important;
       max-height: ${h}mm !important;
       margin: 0 auto !important;
@@ -1613,7 +1648,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
-      gap: 1.2mm !important;
+      gap: 1mm !important;
       text-align: center !important;
       box-sizing: border-box !important;
       overflow: visible !important;
@@ -1623,17 +1658,21 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
+    .print-page .label-card {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
     .label-card:last-child {
       page-break-after: avoid !important;
       break-after: avoid !important;
     }
     .name {
-      font-size: ${Math.max(6.5, Math.min(10.5, Math.round(w * 0.12)))}pt !important;
-      font-weight: 900 !important;
+      font-size: ${Math.max(6, Math.min(9.5, Math.round(w * 0.10)))}pt !important;
+      font-weight: 800 !important;
       width: 100% !important;
       line-height: 1.15 !important;
       color: #000000 !important;
-      margin: 0 auto !important;
+      margin: 0 auto 0.8mm auto !important;
       padding: 0 !important;
       text-align: center !important;
       display: -webkit-box !important;
@@ -1654,9 +1693,9 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     }
     .barcode-container svg {
       width: auto !important;
-      max-width: 95% !important;
+      max-width: 75% !important;
       height: auto !important;
-      max-height: ${Math.max(12, Math.round(h * 0.60))}mm !important;
+      max-height: ${Math.max(7, Math.round(h * 0.38))}mm !important;
       display: block !important;
       margin: 0 auto !important;
       overflow: visible !important;
