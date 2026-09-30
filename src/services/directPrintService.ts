@@ -330,6 +330,27 @@ export interface SavedPrinterInfo {
   port?: number;    // TCP Port
 }
 
+/**
+ * Format barcode display string with secret/coded price in the center.
+ * Example: barcode = 24312, price = 200 => "243 - 200 - 12"
+ */
+export function formatBarcodeDisplay(barcode: string, price?: number): string {
+  if (!barcode) return '';
+  const clean = barcode.trim();
+  if (price === undefined || price === null || isNaN(price)) {
+    return clean;
+  }
+  const priceInt = Math.round(price);
+  if (clean.length === 5) {
+    return `${clean.substring(0, 3)} - ${priceInt} - ${clean.substring(3)}`;
+  }
+  if (clean.length >= 4) {
+    const mid = Math.ceil(clean.length / 2);
+    return `${clean.substring(0, mid)} - ${priceInt} - ${clean.substring(mid)}`;
+  }
+  return `${clean} - ${priceInt}`;
+}
+
 export const DirectPrintService = {
   /**
    * Check if any direct printer is configured and connected
@@ -1044,8 +1065,7 @@ export const DirectPrintService = {
         add([0x1B, 0x61, 0x01]); // Ensure center alignment
         add([0x1D, 0x68, 44]); // Compact height (44 dots)
         add([0x1D, 0x77, 2]);  // Width
-        add([0x1D, 0x66, 2]);  // Text below
-        add([0x1D, 0x48, 0x02]); // Position of HRI characters (2 = below barcode)
+        add([0x1D, 0x48, 0x00]); // 0 = Do not print default hardware HRI characters
 
         const cleanBarcode = barcode.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
         if (cleanBarcode) {
@@ -1055,6 +1075,13 @@ export const DirectPrintService = {
           addText(`*${barcode}*`);
           addNewLine();
         }
+        addNewLine();
+
+        // Print formatted coded price string below barcode (e.g. 243 - 200 - 12)
+        add([0x1B, 0x61, 0x01]); // Center alignment
+        add([0x1B, 0x45, 0x01]); // Bold
+        addText(formatBarcodeDisplay(barcode, price));
+        add([0x1B, 0x45, 0x00]); // Normal
         addNewLine();
 
         // Feed & Partial Cut
