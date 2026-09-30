@@ -40,7 +40,7 @@ import { Switch } from '@/components/ui/switch';
 import { DataService } from '@/services/dataService';
 import { Product } from '@/types';
 import { PrinterPickerModal } from './PrinterPickerModal';
-import { buildBarcodeLabelHTML, universalPrintHTML, getPrinterConfig, detectAutoLabelDimensions } from '@/services/directPrintService';
+import { buildBarcodeLabelHTML, universalPrintHTML, getPrinterConfig, detectAutoLabelDimensions, formatBarcodeDisplay } from '@/services/directPrintService';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { toast } from 'sonner';
 // @ts-ignore - Import directly to bypass package entry resolution failure on some systems/Vite versions
@@ -276,7 +276,8 @@ export default function Inventory() {
     }
 
     if (!svgHTML && selectedBarcode) {
-      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 9.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">*${selectedBarcode}*</div>`;
+      const displayText = formatBarcodeDisplay(selectedBarcode, price);
+      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 9.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">${displayText}</div>`;
     }
 
     const cards = Array(totalLabels).fill(0).map(() => `
@@ -859,23 +860,19 @@ export default function Inventory() {
                       <div className="barcode-container flex justify-center items-center w-full py-0.5 overflow-visible">
                         <Barcode 
                           value={selectedBarcode} 
+                          text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
                           width={getBarcodeBarWidth(selectedBarcode)}
                           height={24} 
-                          fontSize={9}
+                          fontSize={9.5}
                           background="transparent"
                           margin={2}
                         />
                       </div>
-                      {currProd?.sellingPrice !== undefined && (
-                        <div className="text-[11px] font-black text-slate-800 tracking-tight">
-                          ₹{currProd.sellingPrice.toFixed(2)}
-                        </div>
-                      )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-center gap-2">
                       <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                        {selectedBarcode}
+                        {formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
                       </span>
                       {currProd && (
                         <button
