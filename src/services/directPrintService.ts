@@ -1041,9 +1041,11 @@ export const DirectPrintService = {
         addNewLine();
 
         // ESC/POS Barcode
+        add([0x1B, 0x61, 0x01]); // Ensure center alignment
         add([0x1D, 0x68, 65]); // Height
         add([0x1D, 0x77, 2]);  // Width
         add([0x1D, 0x66, 2]);  // Text below
+        add([0x1D, 0x48, 0x02]); // Position of HRI characters (2 = below barcode)
 
         const cleanBarcode = barcode.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
         if (cleanBarcode) {
@@ -1506,34 +1508,43 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     }
     @page {
       size: ${w}mm ${h}mm !important;
-      margin: 0mm !important;
+      margin: 0 auto !important;
     }
     @media print {
       @page {
         size: ${w}mm ${h}mm !important;
-        margin: 0mm !important;
+        margin: 0 auto !important;
       }
       html, body {
-        width: ${w}mm !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
-        min-width: ${w}mm !important;
-        max-width: ${w}mm !important;
         min-height: 0 !important;
         max-height: none !important;
-        margin: 0mm !important;
-        padding: 0mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
         background: #ffffff !important;
         overflow: visible !important;
-        -webkit-transform: scale(1) !important;
-        transform: scale(1) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        -webkit-transform: none !important;
+        transform: none !important;
       }
       .container {
-        width: ${w}mm !important;
-        max-width: ${w}mm !important;
+        width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        display: block !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
       }
       .label-card {
         width: ${w}mm !important;
@@ -1542,8 +1553,15 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         max-width: ${w}mm !important;
         min-height: ${h}mm !important;
         max-height: ${h}mm !important;
+        margin: 0 auto !important;
+        padding: 1mm 1.5mm !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
         page-break-after: always !important;
         break-after: page !important;
         page-break-inside: avoid !important;
@@ -1555,28 +1573,32 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       }
     }
     html, body {
-      width: ${w}mm !important;
-      min-width: ${w}mm !important;
-      max-width: ${w}mm !important;
-      height: auto !important;
+      width: 100% !important;
+      min-width: 100% !important;
+      max-width: 100% !important;
+      height: 100% !important;
       margin: 0 auto !important;
       padding: 0 !important;
       background: #ffffff !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
       text-align: center !important;
-      display: block !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
       overflow: visible !important;
     }
     .container {
-      width: ${w}mm !important;
-      max-width: ${w}mm !important;
+      width: 100% !important;
+      max-width: 100% !important;
       height: auto !important;
       margin: 0 auto !important;
       padding: 0 !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
-      justify-content: flex-start !important;
+      justify-content: center !important;
+      text-align: center !important;
     }
     .label-card {
       width: ${w}mm !important;
@@ -1611,7 +1633,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       width: 100% !important;
       line-height: 1.15 !important;
       color: #000000 !important;
-      margin: 0 !important;
+      margin: 0 auto !important;
       padding: 0 !important;
       text-align: center !important;
       display: -webkit-box !important;
@@ -1625,13 +1647,14 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
+      text-align: center !important;
       margin: 0 auto !important;
       padding: 0 !important;
       overflow: visible !important;
     }
     .barcode-container svg {
-      width: 100% !important;
-      max-width: 100% !important;
+      width: auto !important;
+      max-width: 95% !important;
       height: auto !important;
       max-height: ${Math.max(12, Math.round(h * 0.60))}mm !important;
       display: block !important;
