@@ -1063,7 +1063,7 @@ export const DirectPrintService = {
 
         // ESC/POS Barcode
         add([0x1B, 0x61, 0x01]); // Ensure center alignment
-        add([0x1D, 0x68, 44]); // Compact height (44 dots)
+        add([0x1D, 0x68, 56]); // Normal standard height (56 dots)
         add([0x1D, 0x77, 2]);  // Width
         add([0x1D, 0x48, 0x00]); // 0 = Do not print default hardware HRI characters
 
@@ -1720,9 +1720,9 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     }
     .barcode-container svg {
       width: auto !important;
-      max-width: 75% !important;
+      max-width: 88% !important;
       height: auto !important;
-      max-height: ${Math.max(7, Math.round(h * 0.38))}mm !important;
+      max-height: ${Math.max(10, Math.round(h * 0.48))}mm !important;
       display: block !important;
       margin: 0 auto !important;
       overflow: visible !important;
