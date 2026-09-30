@@ -52,13 +52,13 @@ const generateRandomBarcode5 = (): string => {
 };
 
 const getBarcodeBarWidth = (code?: string | null) => {
-  if (!code) return 2.0;
+  if (!code) return 1.4;
   const len = code.length;
-  if (len > 18) return 1.0;
-  if (len > 14) return 1.15;
-  if (len > 10) return 1.35;
-  if (len <= 5) return 2.2; // Bold and clear for 5-digit barcodes
-  return 1.8; // Bold, sharp lines for <=8-digit barcodes
+  if (len > 18) return 0.9;
+  if (len > 14) return 1.0;
+  if (len > 10) return 1.15;
+  if (len <= 5) return 1.35; // Compact, neat, scannable 5-digit barcode
+  return 1.3;
 };
 
 export default function Inventory() {
@@ -230,18 +230,20 @@ export default function Inventory() {
       clonedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       clonedSvg.removeAttribute('width');
       clonedSvg.removeAttribute('height');
-      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 95% !important; height: auto !important; max-height: 100% !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
+      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 75% !important; height: auto !important; max-height: 24px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
       svgHTML = clonedSvg.outerHTML;
     }
 
     if (!svgHTML && selectedBarcode) {
-      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 900; font-size: 11pt; color: #000; letter-spacing: 2px; margin: 0 auto;">*${selectedBarcode}*</div>`;
+      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 9.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">*${selectedBarcode}*</div>`;
     }
 
     const cards = Array(totalLabels).fill(0).map(() => `
-      <div class="label-card">
-        <div class="name">${name}</div>
-        <div class="barcode-container">${svgHTML}</div>
+      <div class="print-page">
+        <div class="label-card">
+          <div class="name">${name}</div>
+          <div class="barcode-container">${svgHTML}</div>
+        </div>
       </div>
     `).join('');
 
@@ -817,10 +819,10 @@ export default function Inventory() {
                         <Barcode 
                           value={selectedBarcode} 
                           width={getBarcodeBarWidth(selectedBarcode)}
-                          height={38} 
-                          fontSize={11}
+                          height={24} 
+                          fontSize={9}
                           background="transparent"
-                          margin={3}
+                          margin={2}
                         />
                       </div>
                       {currProd?.sellingPrice !== undefined && (
