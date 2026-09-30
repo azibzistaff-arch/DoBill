@@ -47,8 +47,34 @@ import { toast } from 'sonner';
 import Barcode from 'react-barcode/lib/react-barcode.js';
 import { getCurrentUserRole, defineAbilityFor } from '@/services/abilityService';
 
-const generateRandomBarcode5 = (): string => {
-  return String(Math.floor(10000 + Math.random() * 90000));
+const generateRandomBarcode5 = (existingProducts?: { id?: string; barcode?: string }[], currentProductId?: string): string => {
+  const existingSet = new Set<string>();
+  if (existingProducts) {
+    for (const p of existingProducts) {
+      if (p.barcode && (!currentProductId || p.id !== currentProductId)) {
+        existingSet.add(p.barcode.trim());
+      }
+    }
+  }
+
+  // Attempt to generate a completely unique 5-digit number (10000 - 99999)
+  for (let attempt = 0; attempt < 5000; attempt++) {
+    const candidate = String(Math.floor(10000 + Math.random() * 90000));
+    if (!existingSet.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Linear scan fallback in case of high density
+  for (let n = 10000; n <= 99999; n++) {
+    const candidate = String(n);
+    if (!existingSet.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Ultimate fallback if all 90,000 5-digit numbers are exhausted
+  return String(Math.floor(100000 + Math.random() * 900000));
 };
 
 const getBarcodeBarWidth = (code?: string | null) => {
@@ -151,13 +177,28 @@ export default function Inventory() {
     }
 
     const finalProdId = editingProduct.id || (editingProduct as any).product_id;
+    const finalBarcode = editingProduct.barcode ? editingProduct.barcode.trim() : undefined;
+
+    // Ensure barcode uniqueness across inventory
+    if (finalBarcode) {
+      const duplicate = products.find(p => 
+        p.id !== finalProdId && 
+        p.barcode && 
+        p.barcode.trim().toLowerCase() === finalBarcode.toLowerCase()
+      );
+      if (duplicate) {
+        toast.error(`Barcode "${finalBarcode}" is already assigned to "${duplicate.name}". Barcodes must be unique.`);
+        return;
+      }
+    }
+
     const cleanedProduct = {
       ...editingProduct,
       id: finalProdId,
       product_id: finalProdId,
       name: prodName.trim(),
       product_name: prodName.trim(),
-      barcode: editingProduct.barcode ? editingProduct.barcode.trim() : undefined,
+      barcode: finalBarcode,
       brand: editingProduct.brand ? editingProduct.brand.trim() : '',
       category: editingProduct.category ? editingProduct.category.trim() : '',
       sellingPrice: Number(sellingPrice),
@@ -350,7 +391,7 @@ export default function Inventory() {
               <Button 
                 onClick={() => setEditingProduct({ 
                   name: '',
-                  barcode: generateRandomBarcode5(),
+                  barcode: generateRandomBarcode5(products),
                   brand: '',
                   category: '',
                   purchasePrice: undefined,
@@ -395,7 +436,7 @@ export default function Inventory() {
                       type="button"
                       onClick={() => setEditingProduct({
                         ...editingProduct!,
-                        barcode: generateRandomBarcode5()
+                        barcode: generateRandomBarcode5(products, editingProduct?.id)
                       })}
                       className="text-[10px] font-black text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 cursor-pointer transition-all"
                     >
@@ -609,7 +650,7 @@ export default function Inventory() {
                       size="xs" 
                       className="h-5 px-1.5 text-[8px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter border border-blue-200"
                       onClick={async () => {
-                        const newBarcode = generateRandomBarcode5();
+                        const newBarcode = generateRandomBarcode5(products, p.id);
                         const updated = { ...p, barcode: newBarcode };
                         await DataService.saveProduct(updated);
                         await refreshProducts();
@@ -712,7 +753,7 @@ export default function Inventory() {
                     size="xs" 
                     className="h-5 px-1.5 text-[8.5px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter rounded border border-blue-200"
                     onClick={async () => {
-                      const newBarcode = generateRandomBarcode5();
+                      const newBarcode = generateRandomBarcode5(products, p.id);
                       const updated = { ...p, barcode: newBarcode };
                       await DataService.saveProduct(updated);
                       await refreshProducts();
@@ -840,7 +881,7 @@ export default function Inventory() {
                         <button
                           type="button"
                           onClick={async () => {
-                            const newCode = generateRandomBarcode5();
+                            const newCode = generateRandomBarcode5(products, currProd.id);
                             const updated = { ...currProd, barcode: newCode };
                             await DataService.saveProduct(updated);
                             await refreshProducts();
