@@ -1063,9 +1063,9 @@ export const DirectPrintService = {
 
         // ESC/POS Barcode
         add([0x1B, 0x61, 0x01]); // Ensure center alignment
-        add([0x1D, 0x68, 65]); // Zoomed normal height (65 dots)
+        add([0x1D, 0x68, 56]); // Standard clean barcode height (56 dots)
         add([0x1D, 0x77, 2]);  // Width
-        add([0x1D, 0x48, 0x00]); // 0 = Do not print default hardware HRI characters
+        add([0x1D, 0x48, 0x02]); // Position of HRI characters (2 = below barcode)
 
         const cleanBarcode = barcode.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
         if (cleanBarcode) {
@@ -1073,16 +1073,17 @@ export const DirectPrintService = {
           addText(cleanBarcode);
         } else {
           addText(`*${barcode}*`);
-          addNewLine();
         }
         addNewLine();
 
-        // Print formatted coded price string below barcode (e.g. 243 - 200 - 12)
-        add([0x1B, 0x61, 0x01]); // Center alignment
-        add([0x1B, 0x45, 0x01]); // Bold
-        addText(formatBarcodeDisplay(barcode, price));
-        add([0x1B, 0x45, 0x00]); // Normal
-        addNewLine();
+        // Product Price
+        if (price !== undefined && price > 0) {
+          add([0x1B, 0x61, 0x01]); // Center alignment
+          add([0x1B, 0x45, 0x01]); // Bold
+          addText(`MRP: Rs. ${price.toFixed(2)}`);
+          add([0x1B, 0x45, 0x00]); // Normal
+          addNewLine();
+        }
 
         // Feed & Partial Cut
         add([0x1B, 0x64, 0x03]);
@@ -1720,12 +1721,21 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     }
     .barcode-container svg {
       width: auto !important;
-      max-width: 95% !important;
+      max-width: 90% !important;
       height: auto !important;
-      max-height: ${Math.max(14, Math.round(h * 0.58))}mm !important;
+      max-height: ${Math.max(11, Math.round(h * 0.46))}mm !important;
       display: block !important;
       margin: 0 auto !important;
       overflow: visible !important;
+    }
+    .price {
+      font-size: ${Math.max(7.5, Math.min(10.5, Math.round(w * 0.11)))}pt !important;
+      font-weight: 900 !important;
+      color: #000000 !important;
+      margin: 0.6mm auto 0 auto !important;
+      text-align: center !important;
+      letter-spacing: 0.2px !important;
+      line-height: 1 !important;
     }
   </style>
 </head>
