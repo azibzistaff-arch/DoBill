@@ -40,7 +40,7 @@ import { Switch } from '@/components/ui/switch';
 import { DataService } from '@/services/dataService';
 import { Product } from '@/types';
 import { PrinterPickerModal } from './PrinterPickerModal';
-import { buildBarcodeLabelHTML, universalPrintHTML, getPrinterConfig, detectAutoLabelDimensions, formatBarcodeDisplay } from '@/services/directPrintService';
+import { buildBarcodeLabelHTML, universalPrintHTML, getPrinterConfig, detectAutoLabelDimensions } from '@/services/directPrintService';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { toast } from 'sonner';
 // @ts-ignore - Import directly to bypass package entry resolution failure on some systems/Vite versions
@@ -78,13 +78,13 @@ const generateRandomBarcode5 = (existingProducts?: { id?: string; barcode?: stri
 };
 
 const getBarcodeBarWidth = (code?: string | null) => {
-  if (!code) return 2.0;
+  if (!code) return 1.8;
   const len = code.length;
   if (len > 18) return 1.0;
-  if (len > 14) return 1.2;
-  if (len > 10) return 1.4;
-  if (len <= 5) return 2.1; // Zoomed, bold, easily scannable 5-digit barcode on 50x30mm
-  return 1.8;
+  if (len > 14) return 1.15;
+  if (len > 10) return 1.35;
+  if (len <= 5) return 1.85; // Clean, standard, slightly bigger & bold barcode for 50x30mm
+  return 1.6;
 };
 
 export default function Inventory() {
@@ -271,13 +271,12 @@ export default function Inventory() {
       clonedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       clonedSvg.removeAttribute('width');
       clonedSvg.removeAttribute('height');
-      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 95% !important; height: auto !important; max-height: 48px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
+      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 90% !important; height: auto !important; max-height: 38px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
       svgHTML = clonedSvg.outerHTML;
     }
 
     if (!svgHTML && selectedBarcode) {
-      const displayText = formatBarcodeDisplay(selectedBarcode, price);
-      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 11.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">${displayText}</div>`;
+      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 10.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">*${selectedBarcode}*</div>`;
     }
 
     const cards = Array(totalLabels).fill(0).map(() => `
@@ -285,6 +284,7 @@ export default function Inventory() {
         <div class="label-card">
           <div class="name">${name}</div>
           <div class="barcode-container">${svgHTML}</div>
+          <div class="price">₹${price.toFixed(2)}</div>
         </div>
       </div>
     `).join('');
@@ -852,7 +852,7 @@ export default function Inventory() {
                       style={{
                         aspectRatio: `${dims.widthMm || 50} / ${dims.heightMm || 30}`,
                       }}
-                      className="bg-white p-3 rounded-xl shadow-md border border-slate-300 overflow-visible max-w-[260px] w-full flex flex-col items-center justify-center gap-1.5 text-center my-2 transition-all duration-300 min-h-[135px]"
+                      className="bg-white p-3 rounded-xl shadow-md border border-slate-300 overflow-visible max-w-[250px] w-full flex flex-col items-center justify-center gap-1.5 text-center my-2 transition-all duration-300 min-h-[135px]"
                     >
                       <div className="name line-clamp-2 w-full text-center font-black text-xs text-slate-900 px-1 leading-tight">
                         {currProd?.name || 'Product'}
@@ -860,19 +860,23 @@ export default function Inventory() {
                       <div className="barcode-container flex justify-center items-center w-full py-0.5 overflow-visible">
                         <Barcode 
                           value={selectedBarcode} 
-                          text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
                           width={getBarcodeBarWidth(selectedBarcode)}
-                          height={44} 
-                          fontSize={11.5}
+                          height={36} 
+                          fontSize={10.5}
                           background="transparent"
                           margin={2}
                         />
                       </div>
+                      {currProd?.sellingPrice !== undefined && (
+                        <div className="price text-xs font-black text-slate-900 tracking-tight">
+                          ₹{currProd.sellingPrice.toFixed(2)}
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-center gap-2">
                       <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                        {formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
+                        {selectedBarcode}
                       </span>
                       {currProd && (
                         <button
