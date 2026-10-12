@@ -606,9 +606,118 @@ const AppContent = () => {
     password: string;
     name: string;
     email: string;
+    workspaceOwner?: string;
     role?: string;
     avatar?: string;
   }
+
+  const isSameAccount = (a: SavedAccount, b: SavedAccount): boolean => {
+    const aUser = (a.username || '').trim().toLowerCase();
+    const bUser = (b.username || '').trim().toLowerCase();
+    const aEmail = (a.email || '').trim().toLowerCase();
+    const bEmail = (b.email || '').trim().toLowerCase();
+    const aOwner = (a.workspaceOwner || '').trim().toLowerCase();
+    const bOwner = (b.workspaceOwner || '').trim().toLowerCase();
+
+    // 1. Same workspace/store owner
+    if (aOwner && bOwner && aOwner === bOwner) return true;
+
+    // 2. Same registered email address (e.g. prabhjeetmehra313@gmail.com)
+    if (aEmail && bEmail && aEmail.includes('@') && bEmail.includes('@') && aEmail === bEmail) return true;
+
+    // 3. Exactly identical username
+    if (aUser && bUser && aUser === bUser) return true;
+
+    // 4. One account's username matches the other's email
+    if (aEmail && bUser && aEmail === bUser) return true;
+    if (bEmail && aUser && bEmail === aUser) return true;
+
+    // 5. One account's username matches the other's email username prefix (e.g. prabhjeetmehra313 matches prabhjeetmehra313@gmail.com)
+    const aEmailPrefix = aEmail.includes('@') ? aEmail.split('@')[0] : '';
+    const bEmailPrefix = bEmail.includes('@') ? bEmail.split('@')[0] : '';
+    if (aEmailPrefix && bUser && aEmailPrefix === bUser) return true;
+    if (bEmailPrefix && aUser && bEmailPrefix === aUser) return true;
+    if (aEmailPrefix && bEmailPrefix && aEmailPrefix === bEmailPrefix) return true;
+
+    // 6. Common prefix linking (e.g. prabhjeet is prefix of prabhjeetmehra313 and both share workspace or role/password)
+    if (aUser && bUser && (aUser.startsWith(bUser) || bUser.startsWith(aUser)) && (aOwner === bOwner || a.password === b.password)) return true;
+
+    return false;
+  };
+
+  const deduplicateAccountList = (accounts: SavedAccount[]): SavedAccount[] => {
+    const result: SavedAccount[] = [];
+    for (const acc of accounts) {
+      const idx = result.findIndex(existing => isSameAccount(existing, acc));
+      if (idx >= 0) {
+        const existing = result[idx];
+        const preferredUsername = (!existing.username.includes('@') ? existing.username : '') ||
+                                  (!acc.username.includes('@') ? acc.username : '') ||
+                                  existing.username || acc.username;
+
+        const preferredEmail = (existing.email && existing.email.includes('@') ? existing.email : '') ||
+                               (acc.email && acc.email.includes('@') ? acc.email : '') ||
+                               (existing.username.includes('@') ? existing.username : '') ||
+                               (acc.username.includes('@') ? acc.username : '') ||
+                               existing.email || acc.email;
+
+        const preferredName = (!existing.name.includes('@') ? existing.name : '') ||
+                              (!acc.name.includes('@') ? acc.name : '') ||
+                              preferredUsername || existing.name;
+
+        result[idx] = {
+          username: preferredUsername,
+          password: acc.password || existing.password,
+          name: preferredName,
+          email: preferredEmail,
+          workspaceOwner: existing.workspaceOwner || acc.workspaceOwner,
+          role: existing.role || acc.role || 'Admin',
+          avatar: existing.avatar || acc.avatar || ''
+        };
+      } else {
+        result.push(acc);
+      }
+    }
+    return result;
+  };
+
+  const mergeSavedAccounts = (existingList: SavedAccount[], incoming: SavedAccount): SavedAccount[] => {
+    const list: SavedAccount[] = [];
+    let mergedAccount: SavedAccount = { ...incoming };
+
+    for (const acc of existingList) {
+      if (isSameAccount(acc, incoming)) {
+        const preferredUsername = (!acc.username.includes('@') ? acc.username : '') ||
+                                  (!incoming.username.includes('@') ? incoming.username : '') ||
+                                  incoming.username || acc.username;
+
+        const preferredEmail = (incoming.email && incoming.email.includes('@') ? incoming.email : '') ||
+                               (acc.email && acc.email.includes('@') ? acc.email : '') ||
+                               (incoming.username.includes('@') ? incoming.username : '') ||
+                               (acc.username.includes('@') ? acc.username : '') ||
+                               incoming.email || acc.email;
+
+        const preferredName = (!acc.name.includes('@') ? acc.name : '') ||
+                              (!incoming.name.includes('@') ? incoming.name : '') ||
+                              preferredUsername || incoming.name || acc.name;
+
+        mergedAccount = {
+          username: preferredUsername,
+          password: incoming.password || acc.password,
+          name: preferredName,
+          email: preferredEmail,
+          workspaceOwner: incoming.workspaceOwner || acc.workspaceOwner,
+          role: incoming.role || acc.role || 'Admin',
+          avatar: incoming.avatar || acc.avatar || ''
+        };
+      } else {
+        list.push(acc);
+      }
+    }
+
+    list.push(mergedAccount);
+    return list;
+  };
 
   const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>(() => {
     try {
@@ -619,7 +728,11 @@ const AppContent = () => {
           const u = (a.username || a.email || '').toLowerCase().trim();
           return u !== 'casher' && u !== 'cashier' && u !== 'default';
         });
-        return filtered;
+        const deduplicated = deduplicateAccountList(filtered);
+        if (deduplicated.length !== parsed.length) {
+          localStorage.setItem('retailpro_saved_accounts', JSON.stringify(deduplicated));
+        }
+        return deduplicated;
       }
     } catch (e) {}
     return [];
@@ -781,12 +894,12 @@ const AppContent = () => {
           password: signUpPassword,
           name: signUpUsername,
           email: signUpEmail,
+          workspaceOwner: signUpUsername,
           role: 'Admin',
           avatar: ''
         };
         setSavedAccounts(prev => {
-          const filtered = prev.filter(a => a.username.toLowerCase() !== signUpUsername.toLowerCase());
-          const updated = [...filtered, newSavedAcc];
+          const updated = mergeSavedAccounts(prev, newSavedAcc);
           localStorage.setItem('retailpro_saved_accounts', JSON.stringify(updated));
           return updated;
         });
@@ -890,17 +1003,21 @@ const AppContent = () => {
         refreshProfileAndStock();
 
         // Save to saved accounts list on successful login
+        const resolvedUsername = (loginRes as any).username || (trimmedUsername.includes('@') ? (loginRes.email ? loginRes.email.split('@')[0] : trimmedUsername) : trimmedUsername);
+        const resolvedEmail = loginRes.email || (trimmedUsername.includes('@') ? trimmedUsername : '');
+        const resolvedName = (loginRes as any).name || resolvedUsername;
+
         const newSavedAcc: SavedAccount = {
-          username: trimmedUsername,
+          username: resolvedUsername,
           password: password,
-          name: loginRes.email ? loginRes.email.split('@')[0] : trimmedUsername,
-          email: loginRes.email || '',
+          name: resolvedName,
+          email: resolvedEmail,
+          workspaceOwner: loginRes.workspaceOwner,
           role: loginRes.role || 'Admin',
           avatar: ''
         };
         setSavedAccounts(prev => {
-          const filtered = prev.filter(a => a.username.toLowerCase() !== trimmedUsername.toLowerCase());
-          const updated = [...filtered, newSavedAcc];
+          const updated = mergeSavedAccounts(prev, newSavedAcc);
           localStorage.setItem('retailpro_saved_accounts', JSON.stringify(updated));
           return updated;
         });
@@ -1205,9 +1322,10 @@ const AppContent = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            setUsername(account.username);
+                            const loginHandle = account.username || account.email;
+                            setUsername(loginHandle);
                             setPassword('');
-                            toast.info(`Selected account "${account.username}". Please enter password to log in.`);
+                            toast.info(`Selected account "${account.name || loginHandle}". Please enter password to log in.`);
                             const passInput = document.querySelector('input[type="password"]');
                             if (passInput instanceof HTMLInputElement) passInput.focus();
                           }}
@@ -1218,12 +1336,17 @@ const AppContent = () => {
                             {account.avatar ? (
                               <img src={account.avatar} alt="Avatar" className="h-full w-full object-cover rounded-full" />
                             ) : (
-                              account.name.substring(0, 2).toUpperCase()
+                              (account.name || account.username).substring(0, 2).toUpperCase()
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <h4 className="text-xs font-black text-slate-800 truncate select-none leading-tight">{account.name}</h4>
-                            <p className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wide truncate mt-0.5">{account.username}</p>
+                            <p className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wide truncate mt-0.5">
+                              {account.username}
+                              {account.email && account.email.toLowerCase() !== account.username.toLowerCase() && (
+                                <span className="text-slate-400 font-semibold lowercase ml-1.5 opacity-80">· {account.email}</span>
+                              )}
+                            </p>
                             {account.role && (
                               <span className="inline-block mt-0.5 bg-indigo-50 text-indigo-700 text-[8px] font-black uppercase px-1.5 py-0.5 rounded border border-indigo-100 font-sans">
                                 {account.role}
@@ -1236,9 +1359,10 @@ const AppContent = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              setUsername(account.username);
+                              const loginHandle = account.username || account.email;
+                              setUsername(loginHandle);
                               setPassword('');
-                              toast.info(`Selected account "${account.username}". Enter password to log in.`);
+                              toast.info(`Selected account "${account.name || loginHandle}". Enter password to log in.`);
                               const passInput = document.querySelector('input[type="password"]');
                               if (passInput instanceof HTMLInputElement) passInput.focus();
                             }}
