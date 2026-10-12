@@ -62,7 +62,8 @@ import { getCurrentUserRole, defineAbilityFor } from '@/services/abilityService'
 /**
  * Generates a coded retail barcode in the format:
  * [3-digit random] - [Price] - [2-digit random]
- * e.g. "524-250-18"
+ * e.g. "703-270-41"
+ * The random numbers are 5 digits in total (3 digits prefix + 2 digits suffix) wrapping the price.
  */
 const generateCodedBarcode = (
   price?: number,
@@ -80,13 +81,15 @@ const generateCodedBarcode = (
 
   const pInt = (price !== undefined && price !== null && !isNaN(Number(price)) && Number(price) > 0)
     ? Math.round(Number(price))
-    : Math.floor(100 + Math.random() * 900);
+    : 0;
 
   // Format: [3-digit random] - [price] - [2-digit random]
+  // 3-digit random (e.g. 703) + 2-digit random (e.g. 41) = 5 random digits in total
   for (let attempt = 0; attempt < 5000; attempt++) {
-    const r1 = Math.floor(100 + Math.random() * 900);
-    const r2 = Math.floor(10 + Math.random() * 90);
-    const candidate = `${r1}-${pInt}-${r2}`;
+    const r1 = Math.floor(100 + Math.random() * 900); // 3-digit random number
+    const r2 = Math.floor(10 + Math.random() * 90);   // 2-digit random number
+    const priceStr = pInt > 0 ? String(pInt) : '0';
+    const candidate = `${r1}-${priceStr}-${r2}`;
     if (!existingSet.has(candidate)) {
       return candidate;
     }
@@ -94,7 +97,8 @@ const generateCodedBarcode = (
 
   const r1 = Math.floor(100 + Math.random() * 900);
   const r2 = Math.floor(10 + Math.random() * 90);
-  return `${r1}-${pInt}-${r2}`;
+  const priceStr = pInt > 0 ? String(pInt) : '0';
+  return `${r1}-${priceStr}-${r2}`;
 };
 
 const getBarcodeBarWidth = (code?: string | null, labelWidthMm: number = 50) => {
@@ -506,22 +510,25 @@ export default function Inventory() {
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                       Barcode (Machine Scan)
-                      <Badge variant="outline" className="text-[8px] h-4 bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-widest">Rnd - Price - Rnd</Badge>
+                      <Badge variant="outline" className="text-[8px] h-4 bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-widest">703 - Price - 41</Badge>
                     </Label>
                     <button
                       type="button"
-                      onClick={() => setEditingProduct({
-                        ...editingProduct!,
-                        barcode: generateCodedBarcode(editingProduct?.sellingPrice, products, editingProduct?.id)
+                      onClick={() => setEditingProduct(prev => {
+                        if (!prev) return null;
+                        return {
+                          ...prev,
+                          barcode: generateCodedBarcode(prev.sellingPrice, products, prev.id)
+                        };
                       })}
                       className="text-[10px] font-black text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 cursor-pointer transition-all"
                     >
-                      ⚡ Auto Generate (Rnd - Price - Rnd)
+                      ⚡ Auto Generate (703 - Price - 41)
                     </button>
                   </div>
                   <Input 
-                    placeholder="Scan or enter barcode (e.g. 524-250-18)..."
-                    maxLength={20}
+                    placeholder="Scan or enter barcode (e.g. 703-270-41)..."
+                    maxLength={25}
                     className="h-12 text-base font-mono font-bold border-slate-200"
                     value={editingProduct?.barcode ?? ''} 
                     onChange={e => setEditingProduct({...editingProduct!, barcode: e.target.value})}
@@ -610,7 +617,27 @@ export default function Inventory() {
                       type="number" 
                       className="h-12 text-base font-black border-slate-200 text-primary"
                       value={editingProduct?.sellingPrice ?? ''} 
-                      onChange={e => setEditingProduct({...editingProduct!, sellingPrice: e.target.value === '' ? undefined : Number(e.target.value)})} 
+                      onChange={e => {
+                        const newPrice = e.target.value === '' ? undefined : Number(e.target.value);
+                        setEditingProduct(prev => {
+                          if (!prev) return null;
+                          let updatedBarcode = prev.barcode;
+                          // If barcode follows coded format (r1-price-r2), automatically update the middle price
+                          if (newPrice !== undefined && updatedBarcode && updatedBarcode.includes('-')) {
+                            const parts = updatedBarcode.split('-').map(s => s.trim());
+                            if (parts.length === 3) {
+                              updatedBarcode = `${parts[0]}-${Math.round(newPrice)}-${parts[2]}`;
+                            }
+                          } else if (newPrice !== undefined && (!updatedBarcode || updatedBarcode === '')) {
+                            updatedBarcode = generateCodedBarcode(newPrice, products, prev.id);
+                          }
+                          return {
+                            ...prev,
+                            sellingPrice: newPrice,
+                            barcode: updatedBarcode
+                          };
+                        });
+                      }} 
                     />
                   </div>
                 </div>
@@ -980,7 +1007,7 @@ export default function Inventory() {
                           }}
                           className="text-[10px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
                         >
-                          ⚡ Regenerate (Rnd - Price - Rnd)
+                          ⚡ Regenerate (703 - Price - 41)
                         </button>
                       )}
                     </div>
