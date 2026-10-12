@@ -6,7 +6,7 @@ import { isAndroidNative, getThermalPrinter, getCapacitorApp } from './nativePlu
 export { isAndroidNative } from './nativePlugins';
 
 const localStorage = safeLocalStorage;
-const sessionStorage = safeSessionStorage;
+const sessionStorage = safeSessionStorage; 
 
 // Module-level singletons & constants
 const GLOBAL_TEXT_ENCODER = new TextEncoder();
