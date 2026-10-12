@@ -1107,48 +1107,22 @@ export default function Inventory() {
             </div>
           </div>
 
-          <DialogFooter className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5 no-print shrink-0">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button 
-                variant="ghost" 
-                onClick={() => setIsBarcodeViewOpen(false)} 
-                className="font-bold text-slate-500 h-10 rounded-xl px-4 text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleOpenNewWindow}
-                className="text-xs font-bold gap-1.5 h-10 border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700"
-                title="Open formatted printable HTML page in browser tab"
-              >
-                <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-                Browser Tab
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadHTML}
-                className="text-xs font-bold gap-1.5 h-10 border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700"
-                title="Download HTML file for RawBT or Mobile Thermal Print app"
-              >
-                <Download className="h-3.5 w-3.5 text-slate-500" />
-                RawBT
-              </Button>
-            </div>
+          <DialogFooter className="p-4 sm:p-5 bg-white border-t border-slate-100 flex items-center justify-between no-print shrink-0">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsBarcodeViewOpen(false)} 
+              className="font-bold text-slate-500 h-11 rounded-xl px-5 text-sm hover:bg-slate-100"
+            >
+              Cancel
+            </Button>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button 
-                onClick={handlePrint} 
-                className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-8 font-black uppercase tracking-tight rounded-xl"
-              >
-                <Printer className="h-4 w-4" /> 
-                Print {printQuantity} {printQuantity === 1 ? 'Label' : 'Labels'}
-              </Button>
-            </div>
+            <Button 
+              onClick={handlePrint} 
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-8 font-black uppercase tracking-tight rounded-xl"
+            >
+              <Printer className="h-4 w-4" /> 
+              Print {printQuantity} {printQuantity === 1 ? 'Label' : 'Labels'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
