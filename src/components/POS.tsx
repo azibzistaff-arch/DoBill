@@ -156,12 +156,16 @@ export default function POS() {
       return;
     }
 
-    const filtered = allProducts.filter(p => 
-      p.name.toLowerCase().includes(query) ||
-      p.barcode.toLowerCase().includes(query) ||
-      (p.brand && p.brand.toLowerCase().includes(query)) ||
-      (p.category && p.category.toLowerCase().includes(query))
-    );
+    const cleanQuery = query.replace(/[^a-z0-9]/gi, '');
+    const filtered = allProducts.filter(p => {
+      const pBarcode = (p.barcode || '').toLowerCase();
+      const pClean = pBarcode.replace(/[^a-z0-9]/gi, '');
+      return p.name.toLowerCase().includes(query) ||
+        pBarcode.includes(query) ||
+        (cleanQuery.length >= 3 && pClean.includes(cleanQuery)) ||
+        (p.brand && p.brand.toLowerCase().includes(query)) ||
+        (p.category && p.category.toLowerCase().includes(query));
+    });
     setSearchSuggestions(filtered.slice(0, 8));
   }, [barcode, allProducts]);
 
@@ -476,11 +480,15 @@ export default function POS() {
     if (!barcode) return;
 
     const query = barcode.trim().toLowerCase();
-    // 1. Direct match on exact barcode or name
-    const exactMatch = allProducts.find(p => 
-      p.barcode.toLowerCase() === query || 
-      p.name.toLowerCase() === query
-    );
+    const cleanQuery = query.replace(/[^a-z0-9]/gi, '');
+    // 1. Direct match on exact barcode, name, or clean barcode
+    const exactMatch = allProducts.find(p => {
+      const pCode = (p.barcode || '').trim().toLowerCase();
+      const pClean = pCode.replace(/[^a-z0-9]/gi, '');
+      return pCode === query || 
+        p.name.toLowerCase() === query ||
+        (cleanQuery !== '' && pClean === cleanQuery);
+    });
     if (exactMatch) {
       addToCart(exactMatch);
       setBarcode('');
