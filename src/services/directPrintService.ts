@@ -333,10 +333,21 @@ export interface SavedPrinterInfo {
 /**
  * Format barcode display string with secret/coded price in the center.
  * Example: barcode = 24312, price = 200 => "243 - 200 - 12"
+ * Example: barcode = "524-250-18" => "524 - 250 - 18"
  */
 export function formatBarcodeDisplay(barcode: string, price?: number): string {
   if (!barcode) return '';
   const clean = barcode.trim();
+  
+  // If barcode already has hyphens in format: "xxx-price-yy" or "xxx - price - yy"
+  if (clean.includes('-')) {
+    const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
+    if (parts.length === 3) {
+      return `${parts[0]} - ${parts[1]} - ${parts[2]}`;
+    }
+    return parts.join(' - ');
+  }
+
   if (price === undefined || price === null || isNaN(price)) {
     return clean;
   }
@@ -1075,19 +1086,39 @@ export const DirectPrintService = {
 
         // ESC/POS Barcode (Centered & Calibrated for Thermal Sticker Height)
         add([0x1B, 0x61, 0x01]); // Center alignment
-        add([0x1D, 0x68, 48]); // Clean barcode height (48 dots = ~6mm)
-        add([0x1D, 0x77, 2]);  // Module width (2 dots)
-        add([0x1D, 0x66, 0x01]); // HRI characters font: Font B (clean & compact)
-        add([0x1D, 0x48, 0x02]); // Position of HRI characters (2 = below barcode)
+        add([0x1D, 0x68, 64]);   // Clean barcode height (64 dots = ~8mm tall)
+        add([0x1D, 0x77, 2]);    // Module width (2 dots)
+        add([0x1D, 0x66, 0x01]); // HRI characters font: Font B
+        add([0x1D, 0x48, 0x00]); // 0 = Do not print printer internal HRI, we print formatted text below
 
-        const cleanBarcode = barcode.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
+        const displayCode = formatBarcodeDisplay(barcode, price);
+        const cleanBarcode = barcode.trim();
+
         if (cleanBarcode) {
-          add([0x1D, 0x6B, 69, cleanBarcode.length]); // CODE39
-          addText(cleanBarcode);
+          try {
+            // Standard ESC/POS CODE128 command with Subset B selector ({B = 0x7B 0x42)
+            const enc = GLOBAL_TEXT_ENCODER.encode(cleanBarcode);
+            add([0x1D, 0x6B, 73, enc.length + 2, 0x7B, 0x42]);
+            add([...enc]);
+          } catch (e) {
+            // Fallback to Code 39
+            const c39 = cleanBarcode.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
+            add([0x1D, 0x6B, 69, c39.length]);
+            addText(c39);
+          }
         } else {
           addText(`*${barcode}*`);
         }
         addNewLine();
+
+        // Print human-readable "Random - Price - Random" text prominently under barcode
+        if (displayCode) {
+          add([0x1B, 0x61, 0x01]); // Center alignment
+          add([0x1B, 0x45, 0x01]); // Bold ON
+          addText(displayCode);
+          addNewLine();
+          add([0x1B, 0x45, 0x00]); // Bold OFF
+        }
 
         // Product Price
         if (price !== undefined && price > 0) {
@@ -1713,11 +1744,21 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     .barcode-container svg {
       display: block !important;
       margin: 0 auto !important;
-      max-width: 86% !important;
-      width: auto !important;
-      height: auto !important;
-      max-height: ${Math.max(10, Math.round(h * 0.44))}mm !important;
+      width: 90% !important;
+      max-width: 92% !important;
+      height: ${Math.max(12, Math.min(22, Math.round(h * 0.48)))}mm !important;
+      max-height: ${Math.max(12, Math.min(22, Math.round(h * 0.48)))}mm !important;
       overflow: visible !important;
+      shape-rendering: crispEdges !important;
+    }
+    .barcode-container svg rect {
+      fill: #000000 !important;
+      shape-rendering: crispEdges !important;
+    }
+    .barcode-container svg text {
+      fill: #000000 !important;
+      font-weight: 800 !important;
+      font-family: monospace, -apple-system, sans-serif !important;
     }
     .price {
       font-size: ${Math.max(7.5, Math.min(10.5, Math.round(w * 0.11)))}pt !important;
