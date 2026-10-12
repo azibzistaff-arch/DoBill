@@ -1637,7 +1637,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       }
       html, body {
         width: 100% !important;
-        height: auto !important;
+        height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -1647,8 +1647,14 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
         break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        width: 100% !important;
+        height: 100% !important;
         margin: 0 auto !important;
-        padding: 2mm 3mm !important;
+        padding: 1.5mm 2mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
       }
       .print-page:last-child {
         page-break-after: avoid !important;
@@ -1659,6 +1665,12 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
         break-inside: avoid !important;
         border: none !important;
         box-shadow: none !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
     }
     html, body {
@@ -1668,12 +1680,12 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
       text-align: center !important;
       color: #000000 !important;
+      width: 100% !important;
     }
     .print-page {
       width: 100% !important;
-      max-width: 320px !important;
-      margin: 0 auto 6px auto !important;
-      padding: 4px 6px !important;
+      margin: 0 auto !important;
+      padding: 2mm 3mm !important;
       box-sizing: border-box !important;
       display: flex !important;
       flex-direction: column !important;
@@ -1684,7 +1696,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
     .label-card {
       width: 100% !important;
       box-sizing: border-box !important;
-      padding: 4px 6px !important;
+      padding: 2px 4px !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
@@ -1693,10 +1705,10 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       background: #ffffff !important;
     }
     .brand {
-      font-size: 11pt !important;
+      font-size: 13pt !important;
       font-weight: 900 !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.8px !important;
+      letter-spacing: 0.5px !important;
       color: #000000 !important;
       width: 100% !important;
       margin: 0 0 2px 0 !important;
@@ -1705,18 +1717,15 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       line-height: 1.2 !important;
     }
     .name {
-      font-size: 12pt !important;
+      font-size: 13pt !important;
       font-weight: 800 !important;
       width: 100% !important;
-      line-height: 1.25 !important;
+      line-height: 1.2 !important;
       color: #000000 !important;
-      margin: 0 0 4px 0 !important;
+      margin: 1px 0 3px 0 !important;
       padding: 0 !important;
       text-align: center !important;
-      display: -webkit-box !important;
-      -webkit-line-clamp: 2 !important;
-      -webkit-box-orient: vertical !important;
-      overflow: hidden !important;
+      word-break: break-word !important;
     }
     .barcode-container {
       width: 100% !important;
@@ -1726,19 +1735,20 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       justify-content: center !important;
       align-items: center !important;
       text-align: center !important;
-      margin: 4px auto !important;
+      margin: 2px auto !important;
       padding: 0 !important;
     }
     .barcode-container svg {
       display: block !important;
       margin: 0 auto !important;
-      width: 100% !important;
-      max-width: 95% !important;
+      width: 98% !important;
+      max-width: 100% !important;
       height: auto !important;
-      max-height: 90px !important;
+      min-height: 60px !important;
+      max-height: 110px !important;
       shape-rendering: crispEdges !important;
     }
-    .barcode-container svg rect {
+    .barcode-container svg g rect {
       fill: #000000 !important;
       shape-rendering: crispEdges !important;
     }
@@ -1749,12 +1759,12 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       font-family: monospace, -apple-system, sans-serif !important;
     }
     .price {
-      font-size: 13pt !important;
+      font-size: 14pt !important;
       font-weight: 900 !important;
       color: #000000 !important;
-      margin: 4px 0 0 0 !important;
+      margin: 2px 0 0 0 !important;
       text-align: center !important;
-      letter-spacing: 0.3px !important;
+      letter-spacing: 0.2px !important;
       line-height: 1.2 !important;
       white-space: nowrap !important;
     }
@@ -1828,18 +1838,16 @@ export const universalPrintHTML = async (
     }
   }
 
-  // 2. Browser Popup Window Print (Primary for Chrome & Desktop browsers to respect @page dimensions)
+  // 2. Browser Popup Window Print (Opens cleanly with direct print dialog)
   try {
-    const popW = Math.max(450, Math.round(effectiveLabelW * 4));
-    const popH = Math.max(350, Math.round(effectiveLabelH * 4));
-    const printWin = window.open('', '_blank', `width=${popW},height=${popH},toolbar=no,scrollbars=yes,status=no,resizable=yes`);
+    const printWin = window.open('', '_blank', 'width=800,height=600,toolbar=no,scrollbars=yes,status=no,resizable=yes');
     if (printWin) {
       printWin.document.open();
       printWin.document.write(htmlContent);
-      printWin.document.title = "";
+      printWin.document.title = "Print";
       printWin.document.close();
 
-      await new Promise((res) => setTimeout(res, 350));
+      await new Promise((res) => setTimeout(res, 250));
 
       printWin.focus();
       printWin.onafterprint = () => {
@@ -1861,17 +1869,24 @@ export const universalPrintHTML = async (
     console.warn('[DirectPrint] Popup print window failed, falling back to iframe:', winErr);
   }
 
-  // 3. Fallback to hidden iframe if popups are blocked by browser popup blocker
+  // 3. Fallback to offscreen iframe with standard rendering dimensions (prevents blank page bug)
   try {
+    // Remove previous iframe if present
+    const oldIframe = document.getElementById('dobill-universal-print-iframe');
+    if (oldIframe && oldIframe.parentNode) {
+      oldIframe.parentNode.removeChild(oldIframe);
+    }
+
     const iframe = document.createElement('iframe');
     iframe.id = 'dobill-universal-print-iframe';
     iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    iframe.style.zIndex = '-9999';
+    iframe.style.left = '-10000px';
+    iframe.style.top = '-10000px';
+    iframe.style.width = '600px';
+    iframe.style.height = '600px';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
@@ -1880,16 +1895,20 @@ export const universalPrintHTML = async (
       doc.write(htmlContent);
       doc.close();
 
-      await new Promise((res) => setTimeout(res, 400));
+      await new Promise((res) => setTimeout(res, 350));
 
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
+      if (iframe.contentWindow) {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      }
 
       setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 3000);
+        try {
+          if (iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        } catch (_) {}
+      }, 60000);
 
       return { success: true, message: "Print Command Sent" };
     }
@@ -1902,29 +1921,42 @@ export const universalPrintHTML = async (
 
 export const openInNewPrintWindow = (htmlContent: string) => {
   if (isAndroidNative()) return;
-  const blob = new Blob([htmlContent], { type: 'text/html' });
-  const blobUrl = URL.createObjectURL(blob);
+  const printScript = `
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          try {
+            window.focus();
+            window.print();
+          } catch (e) {}
+        }, 300);
+      });
+    </script>
+  `;
+  const printableHTML = htmlContent.includes('</body>')
+    ? htmlContent.replace('</body>', `${printScript}</body>`)
+    : `${htmlContent}${printScript}`;
+
   try {
-    const printWindow = window.open(blobUrl, '_blank');
-    if (!printWindow) {
-      universalPrintHTML(htmlContent, { isLabel: true });
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printableHTML);
+      printWindow.document.close();
       return;
     }
-
-    printWindow.onload = () => {
-      setTimeout(() => {
-        try {
-          printWindow.focus();
-          printWindow.print();
-        } catch (e) {
-          console.warn('Auto print trigger error:', e);
-        }
-      }, 500);
-    };
   } catch (err) {
     console.warn('Open print window error:', err);
-    universalPrintHTML(htmlContent, { isLabel: true });
   }
+
+  try {
+    const blob = new Blob([printableHTML], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    const printWindow = window.open(blobUrl, '_blank');
+    if (printWindow) return;
+  } catch (_) {}
+
+  universalPrintHTML(htmlContent, { isLabel: true });
 };
 
 export const downloadPrintableHTML = (htmlContent: string, fileName: string = 'barcode-labels.html') => {
