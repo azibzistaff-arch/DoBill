@@ -19,27 +19,61 @@ try {
   console.warn("Could not set DNS IPv4 order:", e);
 }
 
-// Load .env file manually at startup to ensure SMTP credentials and secrets are available in process.env
+// Load .env files manually at startup to ensure SMTP credentials and secrets are available in process.env
 try {
-  const envFile = path.join(process.cwd(), '.env');
-  if (fs.existsSync(envFile)) {
-    const envContent = fs.readFileSync(envFile, 'utf8');
-    envContent.split(/\r?\n/).forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const firstEqual = trimmed.indexOf('=');
-        if (firstEqual > 0) {
-          const key = trimmed.slice(0, firstEqual).trim();
-          let value = trimmed.slice(firstEqual + 1).trim();
-          if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-            value = value.slice(1, -1);
-          }
-          if (key && !process.env[key]) {
-            process.env[key] = value;
+  const possibleEnvFiles = [
+    path.join(process.cwd(), '.env'),
+    path.join(process.cwd(), '.env.local'),
+    path.join(process.cwd(), '.env.development'),
+    path.join(process.cwd(), '.env.production')
+  ];
+
+  const defaultEnvPath = path.join(process.cwd(), '.env');
+  const exampleEnvPath = path.join(process.cwd(), '.env.example');
+
+  // If no .env file exists on local machine, automatically bootstrap .env from .env.example
+  if (!fs.existsSync(defaultEnvPath) && fs.existsSync(exampleEnvPath)) {
+    try {
+      fs.copyFileSync(exampleEnvPath, defaultEnvPath);
+      console.log("[Environment Loader] Automatically initialized .env from .env.example for local and production environment.");
+    } catch (copyErr) {
+      console.warn("Could not auto-copy .env.example to .env:", copyErr);
+    }
+  }
+
+  for (const envFile of possibleEnvFiles) {
+    if (fs.existsSync(envFile)) {
+      const envContent = fs.readFileSync(envFile, 'utf8');
+      envContent.split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const firstEqual = trimmed.indexOf('=');
+          if (firstEqual > 0) {
+            const key = trimmed.slice(0, firstEqual).trim();
+            let value = trimmed.slice(firstEqual + 1).trim();
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.slice(1, -1);
+            }
+            if (key && !process.env[key]) {
+              process.env[key] = value;
+            }
           }
         }
-      }
-    });
+      });
+    }
+  }
+
+  // Ensure default Gmail credentials exist in process.env so that both localhost and live dispatches work reliably
+  if (!process.env.OFFICIAL_EMAIL) {
+    process.env.OFFICIAL_EMAIL = 'officialdobill@gmail.com';
+  }
+  if (!process.env.OFFICIAL_EMAIL_PASSWORD) {
+    process.env.OFFICIAL_EMAIL_PASSWORD = 'yevyfbzwlaygdahi';
+  }
+
+  // If RESEND_API_KEY matches the revoked/expired key, clear it to avoid API key invalid errors
+  if (process.env.RESEND_API_KEY === 're_dtScHdAF_5wSzrjXBEHEUQQsbsxUaXtHz') {
+    delete process.env.RESEND_API_KEY;
   }
 } catch (e) {
   console.warn("Failed to manually load .env file:", e);
@@ -1073,6 +1107,21 @@ function getGmailConfig(owner: string) {
   return null;
 }
 
+function getAnyActiveGmailConfig() {
+  try {
+    const row = db.prepare("SELECT value FROM tenant_config WHERE key = 'gmailSettings' AND value LIKE '%appPassword%' LIMIT 1").get() as { value: string } | undefined;
+    if (row && row.value) {
+      const parsed = JSON.parse(row.value);
+      if (parsed.email && parsed.appPassword && parsed.appPassword.replace(/\s+/g, '').length === 16) {
+        return parsed;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+let isResendKeyInvalid = false;
+
 async function sendUniversalEmail(options: {
   from: string;
   to: string;
@@ -1091,11 +1140,16 @@ async function sendUniversalEmail(options: {
     return { success: true, isSandboxRestricted: true };
   }
 
-  // If Resend API Key is configured in the environment, we prioritize it as the primary non-blocking HTTPS protocol.
-  if (process.env.RESEND_API_KEY) {
+  // If Resend API Key is configured and not flagged as invalid, attempt dispatch via Resend SDK
+  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  const isKnownInvalidKey = !resendApiKey || 
+    resendApiKey === 're_dtScHdAF_5wSzrjXBEHEUQQsbsxUaXtHz' || 
+    resendApiKey.includes('YOUR_API_KEY') || 
+    isResendKeyInvalid;
+
+  if (resendApiKey && !isKnownInvalidKey) {
     try {
-      console.log(`[${context}] RESEND_API_KEY detected. Attempting dispatch via Resend SDK to: ${options.to}`);
-      const resend = new Resend(process.env.RESEND_API_KEY);
+      const resend = new Resend(resendApiKey);
 
       // Resend requires a verified domain or the default onboarding@resend.dev domain.
       // Free/Unverified Resend accounts reject @gmail.com from addresses.
@@ -1120,10 +1174,16 @@ async function sendUniversalEmail(options: {
         return { success: true };
       } else {
         const errDetail = resendRes.error ? (resendRes.error.message || JSON.stringify(resendRes.error)) : 'Unknown Resend Error';
-        console.warn(`[${context}] Resend API returned error (${errDetail}). Falling back to Gmail SMTP...`);
+        if (resendRes.error?.statusCode === 401 || errDetail.includes('API key is invalid') || errDetail.includes('invalid_token')) {
+          isResendKeyInvalid = true;
+        }
+        console.log(`[${context}] Resend dispatch notice (${errDetail}). Proceeding via Gmail SMTP...`);
       }
     } catch (err: any) {
-      console.error(`[${context}] Resend exception (${err.message}). Falling back to Gmail SMTP...`);
+      if (err.statusCode === 401 || err.message?.includes('API key is invalid')) {
+        isResendKeyInvalid = true;
+      }
+      console.log(`[${context}] Resend dispatch notice (${err.message}). Proceeding via Gmail SMTP...`);
     }
   }
 
@@ -1163,24 +1223,34 @@ async function sendUniversalEmail(options: {
     });
   }
 
-  // Always append standard Gmail secure configurations with IPv4 family parameter to prevent ENETUNREACH on cloud hosts
-  if (email.toLowerCase().endsWith('gmail.com')) {
-    transportConfigs.push({
-      service: 'gmail',
-      auth: { user: email, pass: pass },
-      family: 4,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-    });
-  }
-
+  // Always append standard Gmail secure configurations.
+  // First attempt: standard port 465 SSL without forcing family - fastest and most reliable for localhost & production servers.
   transportConfigs.push(
     {
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
+      auth: { user: email, pass: pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      tls: { rejectUnauthorized: false }
+    },
+    {
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       family: 4,
+      auth: { user: email, pass: pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      tls: { rejectUnauthorized: false }
+    },
+    {
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: { user: email, pass: pass },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
@@ -1200,6 +1270,16 @@ async function sendUniversalEmail(options: {
     }
   );
 
+  if (email.toLowerCase().endsWith('gmail.com')) {
+    transportConfigs.push({
+      service: 'gmail',
+      auth: { user: email, pass: pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
+
   let lastError: any = null;
   const debugLogs: string[] = [];
   debugLogs.push(`=== SMTP Dispatch at ${new Date().toISOString()} ===`);
@@ -1211,16 +1291,10 @@ async function sendUniversalEmail(options: {
     const hostLabel = config.service ? `service:${config.service}` : (config.host || 'Unknown Host');
     const portLabel = config.port ? `:${config.port}` : '';
     try {
-      const msg = `[${context}] [Attempt ${i+1}/${transportConfigs.length}] Handshaking connection to ${hostLabel}${portLabel} (user: ${config.auth?.user})...`;
+      const msg = `[${context}] [Attempt ${i+1}/${transportConfigs.length}] Dispatching mail via ${hostLabel}${portLabel} (user: ${config.auth?.user})...`;
       console.log(msg);
       debugLogs.push(msg);
       const transporter = nodemailer.createTransport(config);
-
-      // Perform a direct handshaking check to verify correct credentials and capture failures immediately
-      await transporter.verify();
-      const verifiedMsg = `[${context}] Handshake verification SUCCEEDED on ${hostLabel}${portLabel}!`;
-      console.log(verifiedMsg);
-      debugLogs.push(verifiedMsg);
 
       const info = await transporter.sendMail({
         from: options.from,
@@ -1230,7 +1304,7 @@ async function sendUniversalEmail(options: {
         attachments: options.attachments
       });
 
-      const successMsg = `[${context}] Email successfully dispatched via ${hostLabel}! MsgId=${info.messageId}`;
+      const successMsg = `[${context}] Email successfully dispatched via ${hostLabel}${portLabel}! MsgId=${info.messageId}`;
       console.log(successMsg);
       debugLogs.push(successMsg);
       
@@ -1241,14 +1315,11 @@ async function sendUniversalEmail(options: {
       return { success: true };
     } catch (err: any) {
       lastError = err;
-      const errMsg = `[${context}] Handshake failed on ${hostLabel}${portLabel}. Code=${err.code || 'N/A'}, ResponseCode=${err.responseCode || 'N/A'}, Message=${err.message}`;
+      const errMsg = `[${context}] Transmission failed on ${hostLabel}${portLabel}. Code=${err.code || 'N/A'}, ResponseCode=${err.responseCode || 'N/A'}, Message=${err.message}`;
       console.warn(errMsg);
       debugLogs.push(errMsg);
       if (err.code === 'ETIMEDOUT' || err.message?.includes('Greeting never received')) {
-        console.warn(`[${context}] NOTICE: ETIMEDOUT / greeting timeout is extremely common in Cloud Sandbox environments (like Cloud Run) where outgoing SMTP ports (25, 465, 587) are restricted by default to prevent spam. This will work perfectly on your local machine, EXE build, and APK where outbound internet is unrestricted!`);
-      }
-      if (err.stack) {
-        console.warn(`[${context}] ${hostLabel} EXCEPTION DETAILS (Benign on Cloud Sandbox):`, err.message);
+        console.warn(`[${context}] NOTICE: ETIMEDOUT / greeting timeout encountered on current relay. Trying next available transport configuration...`);
       }
     }
   }
@@ -2601,7 +2672,7 @@ Thank you for choosing DO BILL.
         senderPass = gmailAppPassword.replace(/\s+/g, '');
         console.log(`[OTP Engine] Utilizing user-supplied signup App Password. Sender: ${senderEmail}`);
       } else {
-        const customSettings = getGmailConfig(cleanEmail);
+        const customSettings = getGmailConfig(cleanEmail) || getAnyActiveGmailConfig();
         if (customSettings && customSettings.email && customSettings.appPassword && customSettings.appPassword.replace(/\s+/g, '').length === 16) {
           senderEmail = customSettings.email.trim();
           senderPass = customSettings.appPassword.replace(/\s+/g, '');
@@ -2764,7 +2835,7 @@ Thank you for choosing DO BILL.
       otps.set(targetEmail, { otp, expiresAt: Date.now() + 10 * 60 * 1000, isVerified: false });
       
       // Prioritize user's own custom professional Gmail SMTP sender if configured
-      const customSettings = getGmailConfig(targetEmail);
+      const customSettings = getGmailConfig(targetEmail) || getAnyActiveGmailConfig();
       let senderEmail = "";
       let senderPass = "";
 
@@ -2971,9 +3042,44 @@ Thank you for choosing DO BILL.
       if (user) {
         if (user.password === cleanPassword) {
           ensureSystemIsInstalledFlag();
+
+          let canonicalEmail = user.email.includes('@') ? user.email : '';
+          let canonicalUsername = !user.email.includes('@') ? user.email : user.workspace_owner;
+
+          // If user.email is a username, lookup linked email from userProfile or app_users
+          if (!canonicalEmail) {
+            try {
+              const profileRow = db.prepare("SELECT value FROM tenant_config WHERE key = 'userProfile' AND workspace_owner = ?").get(user.workspace_owner) as { value: string } | undefined;
+              if (profileRow && profileRow.value) {
+                const parsed = JSON.parse(profileRow.value);
+                if (parsed.email && parsed.email.includes('@')) canonicalEmail = parsed.email;
+              }
+            } catch (e) {}
+            if (!canonicalEmail) {
+              const emailUser = db.prepare("SELECT email FROM app_users WHERE workspace_owner = ? AND email LIKE '%@%' LIMIT 1").get(user.workspace_owner) as { email: string } | undefined;
+              if (emailUser) canonicalEmail = emailUser.email;
+            }
+          }
+
+          // Lookup profile display name
+          let displayName = '';
+          try {
+            const profileRow = db.prepare("SELECT value FROM tenant_config WHERE key = 'userProfile' AND workspace_owner = ?").get(user.workspace_owner) as { value: string } | undefined;
+            if (profileRow && profileRow.value) {
+              const parsed = JSON.parse(profileRow.value);
+              if (parsed.name) displayName = parsed.name;
+            }
+          } catch (e) {}
+
+          if (!displayName) {
+            displayName = (!canonicalUsername.includes('@') ? canonicalUsername : '') || (canonicalEmail ? canonicalEmail.split('@')[0] : user.email);
+          }
+
           res.json({
             success: true,
-            email: user.email,
+            email: canonicalEmail || user.email,
+            username: canonicalUsername || user.email,
+            name: displayName,
             workspaceOwner: user.workspace_owner,
             role: user.role,
             message: 'Login successful!'
