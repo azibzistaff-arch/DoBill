@@ -843,26 +843,14 @@ export default function Inventory() {
       <Dialog open={isBarcodeViewOpen} onOpenChange={setIsBarcodeViewOpen}>
         <DialogContent className="sm:max-w-2xl p-0 overflow-hidden max-h-[92vh] flex flex-col rounded-3xl border-0 shadow-2xl">
           <DialogHeader className="p-5 sm:p-6 pb-4 border-b shrink-0 bg-white">
-            <DialogTitle className="text-xl font-bold flex items-center justify-between text-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl shadow-xs">
-                  <BarcodeIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-base sm:text-lg font-black text-slate-900 leading-snug">Barcode Label Studio & Generator</div>
-                  <div className="text-xs font-semibold text-slate-500">Precision Centered Barcode • Die-Cut Thermal Stickers</div>
-                </div>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2.5 text-slate-800">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl shadow-xs">
+                <BarcodeIcon className="h-5 w-5" />
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsPrinterModalOpen(true)}
-                className="text-xs font-bold gap-1.5 h-8 border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl"
-              >
-                <Printer className="h-3.5 w-3.5 text-blue-600" />
-                Printer Setup
-              </Button>
+              <div>
+                <div className="text-base sm:text-lg font-black text-slate-900 leading-snug">Barcode Label Studio & Generator</div>
+                <div className="text-xs font-semibold text-slate-500">Precision Centered Barcode • Die-Cut Thermal Stickers</div>
+              </div>
             </DialogTitle>
           </DialogHeader>
 
