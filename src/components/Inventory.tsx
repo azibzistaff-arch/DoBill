@@ -60,16 +60,29 @@ import JsBarcode from 'jsbarcode';
 import { getCurrentUserRole, defineAbilityFor } from '@/services/abilityService';
 
 /**
- * Generates a coded retail barcode in the format:
- * [3-digit random] - [Price] - [2-digit random]
- * e.g. "703-270-41"
- * The random numbers are 5 digits in total (3 digits prefix + 2 digits suffix) wrapping the price.
+ * Generates a clean barcode in the format:
+ * [3-digit random] - [2-digit random] - [2-digit random]
+ * e.g. "703-99-41"
+ * Total 7 digits (always exactly 9 characters with hyphens).
+ * Starts with 3 digits and ends with last 2 numbers (2-digit + 2-digit).
+ * Does NOT inject selling price into barcode.
  */
 const generateCodedBarcode = (
-  price?: number,
-  existingProducts?: { id?: string; barcode?: string }[],
-  currentProductId?: string
+  arg1?: any,
+  arg2?: any,
+  arg3?: any
 ): string => {
+  let existingProducts: { id?: string; barcode?: string }[] | undefined;
+  let currentProductId: string | undefined;
+
+  if (Array.isArray(arg1)) {
+    existingProducts = arg1;
+    currentProductId = typeof arg2 === 'string' ? arg2 : undefined;
+  } else if (Array.isArray(arg2)) {
+    existingProducts = arg2;
+    currentProductId = typeof arg3 === 'string' ? arg3 : undefined;
+  }
+
   const existingSet = new Set<string>();
   if (existingProducts) {
     for (const p of existingProducts) {
@@ -79,17 +92,13 @@ const generateCodedBarcode = (
     }
   }
 
-  const pInt = (price !== undefined && price !== null && !isNaN(Number(price)) && Number(price) > 0)
-    ? Math.round(Number(price))
-    : 0;
-
-  // Format: [3-digit random] - [price] - [2-digit random]
-  // 3-digit random (e.g. 703) + 2-digit random (e.g. 41) = 5 random digits in total
+  // Format: [3-digit random] - [2-digit random] - [2-digit random]
+  // e.g. 703-99-41 (3 digits - 2 digits - 2 digits = 7 digits, 9 chars total)
   for (let attempt = 0; attempt < 5000; attempt++) {
-    const r1 = Math.floor(100 + Math.random() * 900); // 3-digit random number
-    const r2 = Math.floor(10 + Math.random() * 90);   // 2-digit random number
-    const priceStr = pInt > 0 ? String(pInt) : '0';
-    const candidate = `${r1}-${priceStr}-${r2}`;
+    const r1 = Math.floor(100 + Math.random() * 900); // 3-digit: 100-999
+    const r2 = Math.floor(10 + Math.random() * 90);   // 2-digit: 10-99
+    const r3 = Math.floor(10 + Math.random() * 90);   // 2-digit: 10-99
+    const candidate = `${r1}-${r2}-${r3}`;
     if (!existingSet.has(candidate)) {
       return candidate;
     }
@@ -97,8 +106,8 @@ const generateCodedBarcode = (
 
   const r1 = Math.floor(100 + Math.random() * 900);
   const r2 = Math.floor(10 + Math.random() * 90);
-  const priceStr = pInt > 0 ? String(pInt) : '0';
-  return `${r1}-${priceStr}-${r2}`;
+  const r3 = Math.floor(10 + Math.random() * 90);
+  return `${r1}-${r2}-${r3}`;
 };
 
 const getBarcodeBarWidth = (code?: string | null, labelWidthMm: number = 50) => {
@@ -510,7 +519,7 @@ export default function Inventory() {
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                       Barcode (Machine Scan)
-                      <Badge variant="outline" className="text-[8px] h-4 bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-widest">703 - Price - 41</Badge>
+                      <Badge variant="outline" className="text-[8px] h-4 bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-widest">Format: 703-99-41</Badge>
                     </Label>
                     <button
                       type="button"
@@ -518,16 +527,16 @@ export default function Inventory() {
                         if (!prev) return null;
                         return {
                           ...prev,
-                          barcode: generateCodedBarcode(prev.sellingPrice, products, prev.id)
+                          barcode: generateCodedBarcode(products, prev.id)
                         };
                       })}
                       className="text-[10px] font-black text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 cursor-pointer transition-all"
                     >
-                      ⚡ Auto Generate (703 - Price - 41)
+                      ⚡ Auto Generate (703-99-41)
                     </button>
                   </div>
                   <Input 
-                    placeholder="Scan or enter barcode (e.g. 703-270-41)..."
+                    placeholder="Scan or enter barcode (e.g. 703-99-41)..."
                     maxLength={25}
                     className="h-12 text-base font-mono font-bold border-slate-200"
                     value={editingProduct?.barcode ?? ''} 
@@ -621,20 +630,9 @@ export default function Inventory() {
                         const newPrice = e.target.value === '' ? undefined : Number(e.target.value);
                         setEditingProduct(prev => {
                           if (!prev) return null;
-                          let updatedBarcode = prev.barcode;
-                          // If barcode follows coded format (r1-price-r2), automatically update the middle price
-                          if (newPrice !== undefined && updatedBarcode && updatedBarcode.includes('-')) {
-                            const parts = updatedBarcode.split('-').map(s => s.trim());
-                            if (parts.length === 3) {
-                              updatedBarcode = `${parts[0]}-${Math.round(newPrice)}-${parts[2]}`;
-                            }
-                          } else if (newPrice !== undefined && (!updatedBarcode || updatedBarcode === '')) {
-                            updatedBarcode = generateCodedBarcode(newPrice, products, prev.id);
-                          }
                           return {
                             ...prev,
-                            sellingPrice: newPrice,
-                            barcode: updatedBarcode
+                            sellingPrice: newPrice
                           };
                         });
                       }} 
@@ -1007,7 +1005,7 @@ export default function Inventory() {
                           }}
                           className="text-[10px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
                         >
-                          ⚡ Regenerate (703 - Price - 41)
+                          ⚡ Regenerate (703-99-41)
                         </button>
                       )}
                     </div>
