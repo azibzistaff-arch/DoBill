@@ -40,7 +40,15 @@ import { Switch } from '@/components/ui/switch';
 import { DataService } from '@/services/dataService';
 import { Product } from '@/types';
 import { PrinterPickerModal } from './PrinterPickerModal';
-import { buildBarcodeLabelHTML, universalPrintHTML, getPrinterConfig, detectAutoLabelDimensions } from '@/services/directPrintService';
+import { 
+  buildBarcodeLabelHTML, 
+  universalPrintHTML, 
+  getPrinterConfig, 
+  detectAutoLabelDimensions,
+  parseLabelDimensions,
+  openInNewPrintWindow,
+  downloadPrintableHTML
+} from '@/services/directPrintService';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { toast } from 'sonner';
 // @ts-ignore - Import directly to bypass package entry resolution failure on some systems/Vite versions
@@ -123,6 +131,19 @@ export default function Inventory() {
   const [isUploading, setIsUploading] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Advanced Barcode Label Customization & Precision Layout
+  const [labelSize, setLabelSize] = useState<string>('50x30'); // '50x30' | '50x25' | '40x25' | '38x25' | '75x50' | '100x50'
+  const [showBrandOnLabel, setShowBrandOnLabel] = useState<boolean>(true);
+  const [showNameOnLabel, setShowNameOnLabel] = useState<boolean>(true);
+  const [showPriceOnLabel, setShowPriceOnLabel] = useState<boolean>(true);
+  const [customBrandText, setCustomBrandText] = useState<string>('');
+
+  useEffect(() => {
+    if (shopName && !customBrandText) {
+      setCustomBrandText(shopName);
+    }
+  }, [shopName]);
 
   // Global Barcode Scanner in Inventory
   useBarcodeScanner((code) => {
@@ -251,46 +272,48 @@ export default function Inventory() {
     }
   };
 
-  const generateBarcodeFullHTML = () => {
+  const getCleanBarcodeSVG = (barcodeValue: string, labelHeightMm: number = 30) => {
     const previewArea = document.getElementById('printable-label-area');
+    const rawSvg = previewArea ? previewArea.querySelector('svg') : null;
+    if (rawSvg) {
+      const clone = rawSvg.cloneNode(true) as SVGElement;
+      const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 160;
+      const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 48;
+      
+      clone.setAttribute('viewBox', `0 0 ${origW} ${origH}`);
+      clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      
+      const maxH = Math.max(8, Math.min(15, Math.round(labelHeightMm * 0.40)));
+      clone.setAttribute('width', '100%');
+      clone.setAttribute('height', `${maxH}mm`);
+      clone.setAttribute('style', `display: block !important; margin: 0 auto !important; max-width: 86% !important; height: ${maxH}mm !important; max-height: ${maxH}mm !important; overflow: visible !important;`);
+      return clone.outerHTML;
+    }
+    return `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 10.5pt; color: #000; letter-spacing: 1.5px; margin: 1mm auto;">*${barcodeValue}*</div>`;
+  };
 
+  const generateBarcodeFullHTML = () => {
     const totalLabels = Math.max(1, printQuantity || 1);
     const product = products.find(p => p.barcode === selectedBarcode);
     const name = product?.name || 'Product';
     const price = product?.sellingPrice ?? 0;
-    const brand = shopName || product?.brand || 'DO BILL';
+    const brand = customBrandText.trim() || shopName || product?.brand || 'DO BILL';
 
-    let svgHTML = '';
-    const rawSvgElement = previewArea ? previewArea.querySelector('svg') : null;
-    if (rawSvgElement) {
-      const clonedSvg = rawSvgElement.cloneNode(true) as SVGElement;
-      const origW = parseFloat(clonedSvg.getAttribute('width') || '0') || rawSvgElement.getBoundingClientRect().width || 180;
-      const origH = parseFloat(clonedSvg.getAttribute('height') || '0') || rawSvgElement.getBoundingClientRect().height || 42;
-      
-      clonedSvg.setAttribute('viewBox', `0 0 ${origW} ${origH}`);
-      clonedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-      clonedSvg.removeAttribute('width');
-      clonedSvg.removeAttribute('height');
-      clonedSvg.setAttribute('style', 'width: auto !important; max-width: 90% !important; height: auto !important; max-height: 38px !important; display: block !important; margin: 0 auto !important; overflow: visible !important;');
-      svgHTML = clonedSvg.outerHTML;
-    }
-
-    if (!svgHTML && selectedBarcode) {
-      svgHTML = `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 10.5pt; color: #000; letter-spacing: 1.5px; margin: 0 auto;">*${selectedBarcode}*</div>`;
-    }
+    const parsedDims = parseLabelDimensions(labelSize);
+    const svgHTML = getCleanBarcodeSVG(selectedBarcode || '', parsedDims.heightMm);
 
     const cards = Array(totalLabels).fill(0).map(() => `
       <div class="print-page">
         <div class="label-card">
-          <div class="name">${name}</div>
+          ${showBrandOnLabel && brand ? `<div class="brand">${brand}</div>` : ''}
+          ${showNameOnLabel && name ? `<div class="name">${name}</div>` : ''}
           <div class="barcode-container">${svgHTML}</div>
-          <div class="price">₹${price.toFixed(2)}</div>
+          ${showPriceOnLabel && price !== undefined ? `<div class="price">MRP ₹${Number(price).toFixed(2)}</div>` : ''}
         </div>
       </div>
     `).join('');
 
-    const cfg = getPrinterConfig();
-    return buildBarcodeLabelHTML(cards, cfg.labelPrinterName || cfg.billPrinterName);
+    return buildBarcodeLabelHTML(cards, labelSize);
   };
 
   const handlePrint = async () => {
@@ -298,7 +321,8 @@ export default function Inventory() {
     if (!fullHTML) return;
 
     const cfg = getPrinterConfig();
-    const toastId = toast.loading("🖨️ Printing barcode labels...");
+    const parsedDims = parseLabelDimensions(labelSize);
+    const toastId = toast.loading(`🖨️ Printing ${printQuantity} barcode ${printQuantity === 1 ? 'label' : 'labels'}...`);
 
     try {
       const { DirectPrintService } = await import('@/services/directPrintService');
@@ -308,10 +332,10 @@ export default function Inventory() {
         if (product) {
           try {
             await DirectPrintService.printBarcodeDirect(
-              product.name,
+              showNameOnLabel ? product.name : '',
               selectedBarcode,
-              product.sellingPrice,
-              shopName,
+              showPriceOnLabel ? product.sellingPrice : 0,
+              showBrandOnLabel ? (customBrandText.trim() || shopName) : '',
               printQuantity
             );
             toast.dismiss(toastId);
@@ -325,12 +349,14 @@ export default function Inventory() {
 
       const res = await universalPrintHTML(fullHTML, {
         printerName: cfg.labelPrinterName,
-        isLabel: true
+        isLabel: true,
+        labelWidthMm: parsedDims.widthMm,
+        labelHeightMm: parsedDims.heightMm
       });
 
       toast.dismiss(toastId);
       if (res.success) {
-        toast.success("Barcodes Printed Successfully!");
+        toast.success(`Printed ${printQuantity} barcode ${printQuantity === 1 ? 'label' : 'labels'} successfully!`);
       } else {
         toast.error(res.message);
       }
@@ -344,7 +370,6 @@ export default function Inventory() {
   const handleOpenNewWindow = async () => {
     const fullHTML = generateBarcodeFullHTML();
     if (!fullHTML) return;
-    const { openInNewPrintWindow } = await import('@/services/directPrintService');
     openInNewPrintWindow(fullHTML);
     toast.success("Opened Barcode Page in New Tab/Window");
   };
@@ -352,8 +377,7 @@ export default function Inventory() {
   const handleDownloadHTML = async () => {
     const fullHTML = generateBarcodeFullHTML();
     if (!fullHTML) return;
-    const { downloadPrintableHTML } = await import('@/services/directPrintService');
-    downloadPrintableHTML(fullHTML, `${selectedBarcode || 'barcode'}-labels.html`);
+    downloadPrintableHTML(fullHTML, `${selectedBarcode || 'barcode'}-labels-${labelSize}.html`);
     toast.success("Downloaded Barcode HTML! Open in RawBT or Print App to print.");
   };
 
@@ -817,65 +841,94 @@ export default function Inventory() {
 
       {/* Barcode Label Dialog */}
       <Dialog open={isBarcodeViewOpen} onOpenChange={setIsBarcodeViewOpen}>
-        <DialogContent className="sm:max-w-xl p-0 overflow-hidden max-h-[90vh] flex flex-col rounded-3xl border-0 shadow-2xl">
-          <DialogHeader className="p-6 pb-4 border-b shrink-0 bg-white">
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden max-h-[92vh] flex flex-col rounded-3xl border-0 shadow-2xl">
+          <DialogHeader className="p-5 sm:p-6 pb-4 border-b shrink-0 bg-white">
             <DialogTitle className="text-xl font-bold flex items-center justify-between text-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl shadow-xs">
                   <BarcodeIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-base sm:text-lg font-black text-slate-800 leading-snug">Barcode Label Generator</div>
-                  <div className="text-xs font-semibold text-slate-400">Centered Thermal Label • 5-Digit Barcode</div>
+                  <div className="text-base sm:text-lg font-black text-slate-900 leading-snug">Barcode Label Studio & Generator</div>
+                  <div className="text-xs font-semibold text-slate-500">Precision Centered Barcode • Die-Cut Thermal Stickers</div>
                 </div>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPrinterModalOpen(true)}
+                className="text-xs font-bold gap-1.5 h-8 border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl"
+              >
+                <Printer className="h-3.5 w-3.5 text-blue-600" />
+                Printer Setup
+              </Button>
             </DialogTitle>
           </DialogHeader>
 
-          <div className="p-6 space-y-6 overflow-y-auto flex-1 bg-slate-50/50">
-            {/* Prominently Centered Label Preview */}
-            <div className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm relative group mx-auto w-full max-w-sm">
-              <div className="absolute top-3 right-3">
-                <Badge variant="outline" className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-slate-200">
+          <div className="p-5 sm:p-6 space-y-6 overflow-y-auto flex-1 bg-slate-50/50">
+            {/* Prominently Centered Physical Label Preview */}
+            <div className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-slate-200/90 shadow-sm relative group mx-auto w-full max-w-md">
+              <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                <Badge variant="outline" className="bg-slate-50 text-[9px] font-black uppercase text-slate-500 border-slate-200">
+                  {labelSize} mm
+                </Badge>
+                <Badge variant="outline" className="bg-blue-50 text-[9px] font-black uppercase text-blue-600 border-blue-200">
                   Live Preview
                 </Badge>
               </div>
               
               {selectedBarcode && (() => {
-                const cfg = getPrinterConfig();
-                const dims = detectAutoLabelDimensions(cfg.labelPrinterName || cfg.billPrinterName);
+                const parsedDims = parseLabelDimensions(labelSize);
                 const currProd = products.find(p => p.barcode === selectedBarcode);
+                const activeBrand = customBrandText.trim() || shopName || 'DO BILL';
+
                 return (
-                  <div className="flex flex-col items-center justify-center w-full">
+                  <div className="flex flex-col items-center justify-center w-full mt-2">
+                    {/* Exact Aspect-Ratio Sticker Preview */}
                     <div 
                       id="printable-label-area" 
                       style={{
-                        aspectRatio: `${dims.widthMm || 50} / ${dims.heightMm || 30}`,
+                        aspectRatio: `${parsedDims.widthMm} / ${parsedDims.heightMm}`,
                       }}
-                      className="bg-white p-3 rounded-xl shadow-md border border-slate-300 overflow-visible max-w-[250px] w-full flex flex-col items-center justify-center gap-1.5 text-center my-2 transition-all duration-300 min-h-[135px]"
+                      className="bg-white p-2.5 sm:p-3 rounded-xl shadow-md border border-slate-300 overflow-hidden max-w-[270px] w-full flex flex-col items-center justify-between text-center my-2 transition-all duration-300 min-h-[142px]"
                     >
-                      <div className="name line-clamp-2 w-full text-center font-black text-xs text-slate-900 px-1 leading-tight">
-                        {currProd?.name || 'Product'}
-                      </div>
-                      <div className="barcode-container flex justify-center items-center w-full py-0.5 overflow-visible">
+                      {/* Shop / Store Name */}
+                      {showBrandOnLabel && (
+                        <div className="brand w-full text-center font-black text-[9.5px] tracking-wider uppercase text-slate-800 truncate px-1">
+                          {activeBrand}
+                        </div>
+                      )}
+
+                      {/* Product Name */}
+                      {showNameOnLabel && (
+                        <div className="name line-clamp-2 w-full text-center font-extrabold text-[10.5px] text-slate-900 px-1 leading-tight my-0.5">
+                          {currProd?.name || 'Product'}
+                        </div>
+                      )}
+
+                      {/* Barcode SVG Container (Strictly Centered with Quiet Zones) */}
+                      <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-0.5">
                         <Barcode 
                           value={selectedBarcode} 
                           width={getBarcodeBarWidth(selectedBarcode)}
-                          height={36} 
+                          height={34} 
                           fontSize={10.5}
                           background="transparent"
-                          margin={2}
+                          margin={3}
                         />
                       </div>
-                      {currProd?.sellingPrice !== undefined && (
-                        <div className="price text-xs font-black text-slate-900 tracking-tight">
-                          ₹{currProd.sellingPrice.toFixed(2)}
+
+                      {/* Selling Price / MRP */}
+                      {showPriceOnLabel && currProd?.sellingPrice !== undefined && (
+                        <div className="price text-[11px] font-black text-slate-950 tracking-tight mt-0.5">
+                          MRP ₹{currProd.sellingPrice.toFixed(2)}
                         </div>
                       )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">
                         {selectedBarcode}
                       </span>
                       {currProd && (
@@ -889,7 +942,7 @@ export default function Inventory() {
                             setSelectedBarcode(newCode);
                             toast.success(`Generated new 5-digit barcode: ${newCode}`);
                           }}
-                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
                         >
                           ⚡ Random 5-Digit Barcode
                         </button>
@@ -898,72 +951,200 @@ export default function Inventory() {
                   </div>
                 );
               })()}
-              <p className="mt-3 text-[10px] text-slate-400 font-bold uppercase tracking-[0.15em] text-center">
-                Thermal Sticker • 50mm x 30mm (Centered) • {shopName}
+              <p className="mt-3 text-[10px] text-slate-400 font-bold uppercase tracking-[0.12em] text-center">
+                Calibrated Thermal Sticker • Zero-Margin Page Setup
               </p>
             </div>
 
-            {/* Print Quantity Controls - Centered */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm max-w-sm mx-auto w-full">
-              <div className="flex items-center justify-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-xl font-black text-base border-slate-200 hover:bg-slate-100"
-                  onClick={() => setPrintQuantity(prev => Math.max(1, (prev || 1) - 1))}
-                >
-                  -
-                </Button>
+            {/* Label Controls & Calibration Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto w-full">
+              {/* Sticker Dimensions Selector */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <span>📐 Label Dimensions</span>
+                </Label>
+                <Select value={labelSize} onValueChange={setLabelSize}>
+                  <SelectTrigger className="h-10 text-xs font-bold border-slate-200 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="50x30">50mm × 30mm (Standard Retail - Most Popular)</SelectItem>
+                    <SelectItem value="50x25">50mm × 25mm (Compact 2-inch Sticker)</SelectItem>
+                    <SelectItem value="40x25">40mm × 25mm (Small Tag)</SelectItem>
+                    <SelectItem value="38x25">38mm × 25mm (Jewelry / Mini Tag)</SelectItem>
+                    <SelectItem value="75x50">75mm × 50mm (3-inch Box Label)</SelectItem>
+                    <SelectItem value="100x50">100mm × 50mm (4-inch Shipping Label)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Store Title Customizer */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-black uppercase tracking-wider text-slate-600">
+                    Store Header
+                  </Label>
+                  <label className="flex items-center gap-1 cursor-pointer text-[11px] font-bold text-slate-500">
+                    <input 
+                      type="checkbox" 
+                      checked={showBrandOnLabel} 
+                      onChange={e => setShowBrandOnLabel(e.target.checked)}
+                      className="rounded accent-blue-600 h-3.5 w-3.5"
+                    />
+                    <span>Show</span>
+                  </label>
+                </div>
                 <Input 
-                  type="number" 
-                  min={1} 
-                  max={10000} 
-                  value={printQuantity || ''} 
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '') {
-                      setPrintQuantity(0);
-                    } else {
-                      const num = parseInt(val, 10);
-                      if (!isNaN(num)) {
-                        setPrintQuantity(Math.max(1, num));
-                      }
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!printQuantity || printQuantity < 1) {
-                      setPrintQuantity(1);
-                    }
-                  }}
-                  placeholder="Qty..."
-                  className="h-11 w-24 text-center font-black text-base bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
+                  value={customBrandText}
+                  onChange={e => setCustomBrandText(e.target.value)}
+                  placeholder="Store / Shop name..."
+                  disabled={!showBrandOnLabel}
+                  className="h-10 text-xs font-bold border-slate-200 rounded-xl"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-xl font-black text-base border-slate-200 hover:bg-slate-100"
-                  onClick={() => setPrintQuantity(prev => Math.min(10000, (prev || 0) + 1))}
-                >
-                  +
-                </Button>
-                <div className="text-left ml-1">
-                  <p className="text-xs text-slate-800 font-bold leading-tight">
-                    Print Copies
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Centered thermal label
-                  </p>
+              </div>
+            </div>
+
+            {/* Label Content Toggles & Quantity Selector */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-sm max-w-md mx-auto w-full space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500">Sticker Fields</span>
+                <div className="flex items-center gap-4 text-xs font-bold text-slate-700">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={showNameOnLabel} 
+                      onChange={e => setShowNameOnLabel(e.target.checked)}
+                      className="rounded accent-blue-600 h-3.5 w-3.5"
+                    />
+                    <span>Name</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={showPriceOnLabel} 
+                      onChange={e => setShowPriceOnLabel(e.target.checked)}
+                      className="rounded accent-blue-600 h-3.5 w-3.5"
+                    />
+                    <span>MRP (₹)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Quantity Counter & Quick Presets */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-800 font-extrabold leading-tight">
+                      Print Quantity
+                    </p>
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      Exact thermal label copies
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-xl font-black text-sm border-slate-200 hover:bg-slate-100"
+                      onClick={() => setPrintQuantity(prev => Math.max(1, (prev || 1) - 1))}
+                    >
+                      -
+                    </Button>
+                    <Input 
+                      type="number" 
+                      min={1} 
+                      max={10000} 
+                      value={printQuantity || ''} 
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setPrintQuantity(0);
+                        } else {
+                          const num = parseInt(val, 10);
+                          if (!isNaN(num)) {
+                            setPrintQuantity(Math.max(1, num));
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!printQuantity || printQuantity < 1) {
+                          setPrintQuantity(1);
+                        }
+                      }}
+                      className="h-9 w-16 text-center font-black text-sm bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-xl font-black text-sm border-slate-200 hover:bg-slate-100"
+                      onClick={() => setPrintQuantity(prev => Math.min(10000, (prev || 0) + 1))}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Quick Preset Buttons */}
+                <div className="flex items-center justify-between gap-1.5 pt-1">
+                  {[1, 5, 10, 20, 50, 100].map(qty => (
+                    <button
+                      key={qty}
+                      type="button"
+                      onClick={() => setPrintQuantity(qty)}
+                      className={`flex-1 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                        printQuantity === qty 
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {qty}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="p-5 sm:p-6 bg-white border-t border-slate-100 sm:justify-between no-print shrink-0">
-            <Button variant="ghost" onClick={() => setIsBarcodeViewOpen(false)} className="font-bold text-slate-500 h-11 rounded-xl">Cancel</Button>
-            <div className="flex items-center gap-2">
-              <Button onClick={handlePrint} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-8 font-black uppercase tracking-tight rounded-xl">
+          <DialogFooter className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5 no-print shrink-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsBarcodeViewOpen(false)} 
+                className="font-bold text-slate-500 h-10 rounded-xl px-4 text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleOpenNewWindow}
+                className="text-xs font-bold gap-1.5 h-10 border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700"
+                title="Open formatted printable HTML page in browser tab"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+                Browser Tab
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadHTML}
+                className="text-xs font-bold gap-1.5 h-10 border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700"
+                title="Download HTML file for RawBT or Mobile Thermal Print app"
+              >
+                <Download className="h-3.5 w-3.5 text-slate-500" />
+                RawBT
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={handlePrint} 
+                className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-8 font-black uppercase tracking-tight rounded-xl"
+              >
                 <Printer className="h-4 w-4" /> 
                 Print {printQuantity} {printQuantity === 1 ? 'Label' : 'Labels'}
               </Button>
