@@ -331,46 +331,39 @@ export interface SavedPrinterInfo {
 }
 
 /**
- * Format barcode display string with secret/coded price in the center.
- * Example: barcode = "70341" (5-digit random), price = 270 => "703 - 270 - 41"
- * Example: barcode = "703-270-41", price = 270 => "703 - 270 - 41"
- * Total random digits = 5 (3-digit random prefix + 2-digit random suffix wrapping the price)
+ * Format barcode display string with spaces for readability.
+ * Example: barcode = "703-99-41" => "703 - 99 - 41"
+ * Example: barcode = "7039941" => "703 - 99 - 41"
+ * Always maintains fixed format: starting 3 digits - 2 digits - last 2 digits.
+ * Selling price is NOT injected into the barcode text.
  */
-export function formatBarcodeDisplay(barcode: string, price?: number): string {
+export function formatBarcodeDisplay(barcode: string, _price?: number): string {
   if (!barcode) return '';
   const clean = barcode.trim();
-  const hasValidPrice = price !== undefined && price !== null && !isNaN(price) && Number(price) > 0;
-  const priceInt = hasValidPrice ? Math.round(Number(price)) : undefined;
   
-  // If barcode already has hyphens in format: "xxx-price-yy" or "xxx - price - yy"
+  // If barcode already has hyphens in format: "703-99-41" or "xxx-yy-zz"
   if (clean.includes('-')) {
     const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
     if (parts.length === 3) {
-      const displayPrice = priceInt !== undefined ? priceInt : parts[1];
-      return `${parts[0]} - ${displayPrice} - ${parts[2]}`;
+      return `${parts[0]} - ${parts[1]} - ${parts[2]}`;
     }
     if (parts.length === 2) {
-      if (priceInt !== undefined) {
-        return `${parts[0]} - ${priceInt} - ${parts[1]}`;
-      }
       return `${parts[0]} - ${parts[1]}`;
     }
     return parts.join(' - ');
   }
 
-  if (priceInt === undefined) {
-    return clean;
+  // 7-digit number (e.g. "7039941"): 3-digit prefix + 2-digit mid + 2-digit suffix => "703 - 99 - 41"
+  if (clean.length === 7 && /^\d+$/.test(clean)) {
+    return `${clean.substring(0, 3)} - ${clean.substring(3, 5)} - ${clean.substring(5, 7)}`;
   }
 
-  // 5-digit random number: 3-digit random prefix + price + 2-digit random suffix
-  if (clean.length === 5) {
-    return `${clean.substring(0, 3)} - ${priceInt} - ${clean.substring(3)}`;
+  // 5-digit number (e.g. "70341"): 3-digit prefix + 2-digit suffix => "703 - 41"
+  if (clean.length === 5 && /^\d+$/.test(clean)) {
+    return `${clean.substring(0, 3)} - ${clean.substring(3)}`;
   }
-  if (clean.length >= 4) {
-    const mid = Math.ceil(clean.length / 2);
-    return `${clean.substring(0, mid)} - ${priceInt} - ${clean.substring(mid)}`;
-  }
-  return `${clean} - ${priceInt}`;
+
+  return clean;
 }
 
 export const DirectPrintService = {
