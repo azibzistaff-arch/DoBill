@@ -294,40 +294,42 @@ export default function Inventory() {
       if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         // @ts-ignore
-        const JsBarcodeFn = typeof JsBarcode === 'function' ? JsBarcode : (window as any).JsBarcode;
+        const JsBarcodeFn = typeof JsBarcode === 'function' ? JsBarcode : (JsBarcode as any)?.default || (window as any).JsBarcode;
         if (JsBarcodeFn) {
           JsBarcodeFn(svgElement, barcodeValue, {
             format: 'CODE128',
             text: displayTxt,
-            width: 2.2, // Bold 2.2px bar thickness: dark, prominent and easy to scan
-            height: 52, // Tall 52px bars
-            fontSize: 14,
+            width: 2.6, // Bold 2.6px bar thickness: dark, prominent, crisp scan
+            height: 62, // Tall 62px bars
+            fontSize: 15,
             fontOptions: 'bold',
             displayValue: true,
-            margin: 4,
-            background: '#ffffff',
+            margin: 2,
+            background: '', // Crucial: empty background avoids solid blocking rectangle
             lineColor: '#000000'
           });
 
           // Read the natural width and height produced by JsBarcode
-          const naturalW = parseFloat(svgElement.getAttribute('width') || '0') || 240;
-          const naturalH = parseFloat(svgElement.getAttribute('height') || '0') || 70;
+          const naturalW = parseFloat(svgElement.getAttribute('width') || '0') || 260;
+          const naturalH = parseFloat(svgElement.getAttribute('height') || '0') || 80;
 
-          // Crucial: Set viewBox so the SVG can scale to any width and height without collapsing
+          // Set viewBox so the SVG scales cleanly to fill the label width
           svgElement.setAttribute('viewBox', `0 0 ${naturalW} ${naturalH}`);
           svgElement.setAttribute('width', '100%');
-          svgElement.setAttribute('height', '100%');
+          svgElement.removeAttribute('height');
           svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-          svgElement.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 95% !important; height: auto !important; max-height: 85px !important; shape-rendering: crispEdges !important;');
+          svgElement.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 100% !important; height: auto !important; min-height: 60px !important; max-height: 110px !important; shape-rendering: crispEdges !important;');
           
-          svgElement.querySelectorAll('rect').forEach((r: any) => {
+          // Ensure all barcode bars inside groups have pure black fill
+          svgElement.querySelectorAll('g rect').forEach((r: any) => {
             r.setAttribute('fill', '#000000');
             r.setAttribute('shape-rendering', 'crispEdges');
           });
           svgElement.querySelectorAll('text').forEach((t: any) => {
             t.setAttribute('fill', '#000000');
             t.setAttribute('font-weight', '900');
-            t.setAttribute('font-size', '14px');
+            t.setAttribute('font-size', '15px');
+            t.setAttribute('font-family', 'monospace, sans-serif');
           });
 
           return svgElement.outerHTML;
@@ -343,23 +345,24 @@ export default function Inventory() {
     if (rawSvg) {
       try {
         const clone = rawSvg.cloneNode(true) as SVGElement;
-        const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 240;
-        const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 70;
+        const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 260;
+        const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 80;
         
         clone.setAttribute('viewBox', `0 0 ${origW} ${origH}`);
         clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         clone.setAttribute('width', '100%');
-        clone.setAttribute('height', '100%');
-        clone.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 95% !important; height: auto !important; max-height: 85px !important; shape-rendering: crispEdges !important;');
+        clone.removeAttribute('height');
+        clone.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 100% !important; height: auto !important; min-height: 60px !important; max-height: 110px !important; shape-rendering: crispEdges !important;');
         
-        clone.querySelectorAll('rect').forEach((r: any) => {
+        clone.querySelectorAll('g rect').forEach((r: any) => {
           r.setAttribute('fill', '#000000');
           r.setAttribute('shape-rendering', 'crispEdges');
         });
         clone.querySelectorAll('text').forEach((t: any) => {
           t.setAttribute('fill', '#000000');
           t.setAttribute('font-weight', '900');
-          t.setAttribute('font-size', '14px');
+          t.setAttribute('font-size', '15px');
+          t.setAttribute('font-family', 'monospace, sans-serif');
         });
         return clone.outerHTML;
       } catch (err) {
@@ -398,22 +401,18 @@ export default function Inventory() {
     if (!fullHTML) return;
 
     const cfg = getPrinterConfig();
-    const toastId = toast.loading('🖨️ Opening print dialog...');
-
     try {
       const res = await universalPrintHTML(fullHTML, {
         printerName: cfg.labelPrinterName,
         isLabel: true
       });
 
-      toast.dismiss(toastId);
       if (res.success) {
-        toast.success('Sent to printer!');
+        toast.success('Print dialog opened!');
       } else {
         toast.error(res.message);
       }
     } catch (err: any) {
-      toast.dismiss(toastId);
       console.error("Print failed:", err);
       toast.error(`Printing failed: ${err.message || err}`);
     }
@@ -947,12 +946,12 @@ export default function Inventory() {
                         <Barcode 
                           value={selectedBarcode} 
                           text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
-                          width={2.2}
-                          height={52} 
-                          fontSize={14}
+                          width={2.5}
+                          height={62} 
+                          fontSize={15}
                           fontOptions="bold"
                           background="transparent"
-                          margin={4}
+                          margin={2}
                         />
                       </div>
 
