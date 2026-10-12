@@ -6,7 +6,7 @@ import { isAndroidNative, getThermalPrinter, getCapacitorApp } from './nativePlu
 export { isAndroidNative } from './nativePlugins';
 
 const localStorage = safeLocalStorage;
-const sessionStorage = safeSessionStorage; 
+const sessionStorage = safeSessionStorage;
 
 // Module-level singletons & constants
 const GLOBAL_TEXT_ENCODER = new TextEncoder();
@@ -1605,27 +1605,9 @@ export const isThermalPrinterName = (printerName: string): boolean => {
 
 /**
  * Build standalone barcode label HTML document for thermal label printing.
- * Dynamically calculates dimensions and strictly uses static CSS @page size declarations
- * so Chrome / Edge print preview locks directly to the label dimensions
- * with zero margin and zero extra white space without ever defaulting to A4.
+ * Uses standard normal page print styling so the printer driver controls page/roll size directly.
  */
-export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterNameOrSize?: string, customW?: number, customH?: number): string {
-  const parsed = parseLabelDimensions(targetPrinterNameOrSize, customW, customH);
-  const w = parsed.widthMm;
-  const h = parsed.heightMm;
-
-  // Proportional typography based on label width & height (readable on thermal printheads)
-  const brandFontSizePt = Math.max(6.5, Math.min(11, Math.round(w * 0.11 + h * 0.04)));
-  const nameFontSizePt = Math.max(7.5, Math.min(13, Math.round(w * 0.12 + h * 0.05)));
-  const priceFontSizePt = Math.max(8.5, Math.min(16, Math.round(w * 0.14 + h * 0.06)));
-  
-  // Dynamic padding scaled to label size (maintains safety margins for roll wandering)
-  const padVerticalMm = Math.max(0.6, Math.min(2.5, Math.round(h * 0.035 * 10) / 10));
-  const padHorizontalMm = Math.max(0.8, Math.min(3.0, Math.round(w * 0.03 * 10) / 10));
-
-  // Barcode container max height
-  const maxBarcodeHeightMm = Math.max(12, Math.min(120, Math.round(h * 0.58)));
-
+export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNameOrSize?: string, _customW?: number, _customH?: number): string {
   // Wrap raw label-card in print-page if not already wrapped
   let formattedInner = labelsInnerHTML.trim();
   if (!formattedInner.includes('print-page')) {
@@ -1636,8 +1618,8 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=${w}mm, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Barcode Label (${w}mm x ${h}mm)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode Label</title>
   <style>
     *, *::before, *::after {
       box-sizing: border-box !important;
@@ -1647,144 +1629,88 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       print-color-adjust: exact !important;
     }
     @page {
-      size: ${w}mm ${h}mm !important;
       margin: 0 !important;
     }
     @media print {
       @page {
-        size: ${w}mm ${h}mm !important;
         margin: 0 !important;
       }
       html, body {
-        width: ${w}mm !important;
-        height: ${h}mm !important;
-        min-width: ${w}mm !important;
-        max-width: ${w}mm !important;
-        min-height: ${h}mm !important;
-        max-height: ${h}mm !important;
+        width: 100% !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
-        overflow: hidden !important;
-        -webkit-transform: none !important;
-        transform: none !important;
-      }
-      .container {
-        width: ${w}mm !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: block !important;
       }
       .print-page {
-        width: ${w}mm !important;
-        height: ${h}mm !important;
-        min-height: ${h}mm !important;
-        max-height: ${h}mm !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
         page-break-after: always !important;
         break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
+        margin: 0 auto !important;
+        padding: 2mm 3mm !important;
       }
       .print-page:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       .label-card {
-        width: 100% !important;
-        height: 100% !important;
-        max-width: 100% !important;
-        max-height: 100% !important;
-        margin: 0 !important;
-        padding: ${padVerticalMm}mm ${padHorizontalMm}mm !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        text-align: center !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        background: #ffffff !important;
+        border: none !important;
+        box-shadow: none !important;
       }
     }
     html, body {
       margin: 0 auto !important;
-      padding: 3mm 0 !important;
-      background: #f8fafc !important;
+      padding: 4px !important;
+      background: #ffffff !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
       text-align: center !important;
-    }
-    .container {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      gap: 3mm !important;
-      margin: 0 auto !important;
+      color: #000000 !important;
     }
     .print-page {
-      width: ${w}mm !important;
-      height: ${h}mm !important;
-      min-height: ${h}mm !important;
-      max-height: ${h}mm !important;
-      margin: 0 auto !important;
-      padding: 0 !important;
-      background: #ffffff !important;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
-      border: 1px solid #cbd5e1 !important;
-      border-radius: 1.5mm !important;
+      width: 100% !important;
+      max-width: 320px !important;
+      margin: 0 auto 6px auto !important;
+      padding: 4px 6px !important;
       box-sizing: border-box !important;
-      overflow: hidden !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
+      text-align: center !important;
     }
     .label-card {
       width: 100% !important;
-      height: 100% !important;
-      padding: ${padVerticalMm}mm ${padHorizontalMm}mm !important;
       box-sizing: border-box !important;
+      padding: 4px 6px !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
-      justify-content: space-between !important;
+      justify-content: center !important;
       text-align: center !important;
-      overflow: hidden !important;
       background: #ffffff !important;
     }
     .brand {
-      font-size: ${brandFontSizePt}pt !important;
+      font-size: 11pt !important;
       font-weight: 900 !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.5px !important;
+      letter-spacing: 0.8px !important;
       color: #000000 !important;
       width: 100% !important;
-      margin: 0 0 0.2mm 0 !important;
+      margin: 0 0 2px 0 !important;
       padding: 0 !important;
       text-align: center !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      line-height: 1.15 !important;
+      line-height: 1.2 !important;
     }
     .name {
-      font-size: ${nameFontSizePt}pt !important;
+      font-size: 12pt !important;
       font-weight: 800 !important;
       width: 100% !important;
-      line-height: 1.15 !important;
+      line-height: 1.25 !important;
       color: #000000 !important;
-      margin: 0 0 0.3mm 0 !important;
+      margin: 0 0 4px 0 !important;
       padding: 0 !important;
       text-align: center !important;
       display: -webkit-box !important;
@@ -1795,24 +1721,21 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     .barcode-container {
       width: 100% !important;
       max-width: 100% !important;
-      flex: 1 1 auto !important;
       display: flex !important;
       flex-direction: column !important;
       justify-content: center !important;
       align-items: center !important;
       text-align: center !important;
-      margin: auto 0 !important;
+      margin: 4px auto !important;
       padding: 0 !important;
-      overflow: visible !important;
     }
     .barcode-container svg {
       display: block !important;
       margin: 0 auto !important;
       width: 100% !important;
-      max-width: 96% !important;
+      max-width: 95% !important;
       height: auto !important;
-      max-height: ${maxBarcodeHeightMm}mm !important;
-      overflow: visible !important;
+      max-height: 90px !important;
       shape-rendering: crispEdges !important;
     }
     .barcode-container svg rect {
@@ -1821,23 +1744,24 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     }
     .barcode-container svg text {
       fill: #000000 !important;
-      font-weight: 800 !important;
+      font-weight: 900 !important;
+      font-size: 14px !important;
       font-family: monospace, -apple-system, sans-serif !important;
     }
     .price {
-      font-size: ${priceFontSizePt}pt !important;
+      font-size: 13pt !important;
       font-weight: 900 !important;
       color: #000000 !important;
-      margin: 0.3mm 0 0 0 !important;
+      margin: 4px 0 0 0 !important;
       text-align: center !important;
-      letter-spacing: 0.2px !important;
-      line-height: 1.15 !important;
+      letter-spacing: 0.3px !important;
+      line-height: 1.2 !important;
       white-space: nowrap !important;
     }
   </style>
 </head>
 <body>
-  <div class="container">${formattedInner}</div>
+  ${formattedInner}
 </body>
 </html>`;
 }
