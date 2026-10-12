@@ -124,7 +124,6 @@ export default function Inventory() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isBarcodeViewOpen, setIsBarcodeViewOpen] = useState(false);
   const [selectedBarcode, setSelectedBarcode] = useState<string | null>(null);
-  const [printQuantity, setPrintQuantity] = useState(1);
   const [printMode, setPrintMode] = useState<'sheet' | 'roll'>('roll');
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
   const [printOnSave, setPrintOnSave] = useState(false);
@@ -293,7 +292,7 @@ export default function Inventory() {
   };
 
   const generateBarcodeFullHTML = () => {
-    const totalLabels = Math.max(1, printQuantity || 1);
+    const totalLabels = 1;
     const product = products.find(p => p.barcode === selectedBarcode);
     const name = product?.name || 'Product';
     const price = product?.sellingPrice ?? 0;
@@ -322,7 +321,7 @@ export default function Inventory() {
 
     const cfg = getPrinterConfig();
     const parsedDims = parseLabelDimensions(labelSize);
-    const toastId = toast.loading(`🖨️ Printing ${printQuantity} barcode ${printQuantity === 1 ? 'label' : 'labels'}...`);
+    const toastId = toast.loading('🖨️ Printing barcode label...');
 
     try {
       const { DirectPrintService } = await import('@/services/directPrintService');
@@ -336,10 +335,10 @@ export default function Inventory() {
               selectedBarcode,
               showPriceOnLabel ? product.sellingPrice : 0,
               showBrandOnLabel ? (customBrandText.trim() || shopName) : '',
-              printQuantity
+              1
             );
             toast.dismiss(toastId);
-            toast.success("Barcodes Sent to Thermal Printer!");
+            toast.success("Barcode Sent to Thermal Printer!");
             return;
           } catch (directErr) {
             console.warn("Direct thermal barcode print failed, falling back to universal print:", directErr);
@@ -356,7 +355,7 @@ export default function Inventory() {
 
       toast.dismiss(toastId);
       if (res.success) {
-        toast.success(`Printed ${printQuantity} barcode ${printQuantity === 1 ? 'label' : 'labels'} successfully!`);
+        toast.success('Printed barcode label successfully!');
       } else {
         toast.error(res.message);
       }
@@ -1002,58 +1001,13 @@ export default function Inventory() {
               Cancel
             </Button>
 
-            <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <span className="text-[11px] font-extrabold text-slate-500 px-2 uppercase tracking-wider">Qty</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg font-black text-sm hover:bg-white text-slate-700"
-                  onClick={() => setPrintQuantity(prev => Math.max(1, (prev || 1) - 1))}
-                >
-                  -
-                </Button>
-                <Input 
-                  type="number" 
-                  min={1} 
-                  max={10000} 
-                  value={printQuantity || ''} 
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '') {
-                      setPrintQuantity(0);
-                    } else {
-                      const num = parseInt(val, 10);
-                      if (!isNaN(num)) {
-                        setPrintQuantity(Math.max(1, num));
-                      }
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!printQuantity || printQuantity < 1) {
-                      setPrintQuantity(1);
-                    }
-                  }}
-                  className="h-8 w-14 text-center font-black text-sm bg-white border-slate-200 rounded-lg p-0"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg font-black text-sm hover:bg-white text-slate-700"
-                  onClick={() => setPrintQuantity(prev => Math.min(10000, (prev || 0) + 1))}
-                >
-                  +
-                </Button>
-              </div>
-
+            <div className="flex items-center justify-end gap-3 w-full sm:w-auto">
               <Button 
                 onClick={handlePrint} 
-                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-7 font-black uppercase tracking-tight rounded-xl flex-1 sm:flex-initial"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-7 font-black uppercase tracking-tight rounded-xl w-full sm:w-auto"
               >
                 <Printer className="h-4 w-4" /> 
-                Print {printQuantity} {printQuantity === 1 ? 'Label' : 'Labels'}
+                Print Label
               </Button>
             </div>
           </DialogFooter>
