@@ -60,12 +60,10 @@ import JsBarcode from 'jsbarcode';
 import { getCurrentUserRole, defineAbilityFor } from '@/services/abilityService';
 
 /**
- * Generates a clean barcode in the format:
- * [3-digit random] - [2-digit random] - [2-digit random]
- * e.g. "703-99-41"
- * Total 7 digits (always exactly 9 characters with hyphens).
- * Starts with 3 digits and ends with last 2 numbers (2-digit + 2-digit).
- * Does NOT inject selling price into barcode.
+ * Generates a clean 4-digit random barcode:
+ * 2-digit random (e.g. 70) + 2-digit random (e.g. 41) => "7041"
+ * Total exactly 4 digits. Fewer lines, thicker bars, ultra-crisp scan.
+ * No selling price, no hyphens.
  */
 const generateCodedBarcode = (
   arg1?: any,
@@ -92,22 +90,19 @@ const generateCodedBarcode = (
     }
   }
 
-  // Format: [3-digit random] - [2-digit random] - [2-digit random]
-  // e.g. 703-99-41 (3 digits - 2 digits - 2 digits = 7 digits, 9 chars total)
+  // 4-digit random barcode: 2-digit (10-99) + 2-digit (10-99) => e.g. 7041
   for (let attempt = 0; attempt < 5000; attempt++) {
-    const r1 = Math.floor(100 + Math.random() * 900); // 3-digit: 100-999
-    const r2 = Math.floor(10 + Math.random() * 90);   // 2-digit: 10-99
-    const r3 = Math.floor(10 + Math.random() * 90);   // 2-digit: 10-99
-    const candidate = `${r1}-${r2}-${r3}`;
+    const r1 = Math.floor(10 + Math.random() * 90); // 2-digit: 10-99
+    const r2 = Math.floor(10 + Math.random() * 90); // 2-digit: 10-99
+    const candidate = `${r1}${r2}`;
     if (!existingSet.has(candidate)) {
       return candidate;
     }
   }
 
-  const r1 = Math.floor(100 + Math.random() * 900);
+  const r1 = Math.floor(10 + Math.random() * 90);
   const r2 = Math.floor(10 + Math.random() * 90);
-  const r3 = Math.floor(10 + Math.random() * 90);
-  return `${r1}-${r2}-${r3}`;
+  return `${r1}${r2}`;
 };
 
 const getBarcodeBarWidth = (code?: string | null, labelWidthMm: number = 50) => {
@@ -153,6 +148,7 @@ export default function Inventory() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isBarcodeViewOpen, setIsBarcodeViewOpen] = useState(false);
   const [selectedBarcode, setSelectedBarcode] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [printMode, setPrintMode] = useState<'sheet' | 'roll'>('roll');
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
   const [printOnSave, setPrintOnSave] = useState(false);
@@ -388,9 +384,9 @@ export default function Inventory() {
 
   const generateBarcodeFullHTML = () => {
     const totalLabels = 1;
-    const product = products.find(p => p.barcode === selectedBarcode);
+    const product = selectedProduct || products.find(p => p.barcode === selectedBarcode);
     const name = product?.name || 'Product';
-    const price = product?.sellingPrice ?? 0;
+    const price = product?.sellingPrice ?? (product as any)?.selling_price ?? 0;
     const brand = customBrandText.trim() || shopName || product?.brand || 'DO BILL';
 
     const svgHTML = getCleanBarcodeSVG(selectedBarcode || '', price);
@@ -519,7 +515,7 @@ export default function Inventory() {
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                       Barcode (Machine Scan)
-                      <Badge variant="outline" className="text-[8px] h-4 bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-widest">Format: 703-99-41</Badge>
+                      <Badge variant="outline" className="text-[8px] h-4 bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-widest">4-Digit (e.g. 7041)</Badge>
                     </Label>
                     <button
                       type="button"
@@ -532,11 +528,11 @@ export default function Inventory() {
                       })}
                       className="text-[10px] font-black text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 cursor-pointer transition-all"
                     >
-                      ⚡ Auto Generate (703-99-41)
+                      ⚡ Auto Generate (7041)
                     </button>
                   </div>
                   <Input 
-                    placeholder="Scan or enter barcode (e.g. 703-99-41)..."
+                    placeholder="Scan or enter barcode (e.g. 7041)..."
                     maxLength={25}
                     className="h-12 text-base font-mono font-bold border-slate-200"
                     value={editingProduct?.barcode ?? ''} 
@@ -740,7 +736,7 @@ export default function Inventory() {
                         variant="ghost" 
                         size="xs" 
                         className="h-5 px-1.5 text-[8px] bg-slate-100 hover:bg-slate-200 uppercase font-black tracking-tighter"
-                        onClick={() => { setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
+                        onClick={() => { setSelectedProduct(p); setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
                       >
                         <BarcodeIcon className="h-3 w-3 mr-1" /> Label
                       </Button>
@@ -751,10 +747,11 @@ export default function Inventory() {
                       size="xs" 
                       className="h-5 px-1.5 text-[8px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter border border-blue-200"
                       onClick={async () => {
-                        const newBarcode = generateCodedBarcode(p.sellingPrice, products, p.id);
+                        const newBarcode = generateCodedBarcode(products, p.id);
                         const updated = { ...p, barcode: newBarcode };
                         await DataService.saveProduct(updated);
                         await refreshProducts();
+                        setSelectedProduct(updated);
                         setSelectedBarcode(newBarcode);
                         setIsBarcodeViewOpen(true);
                         toast.success(`Generated Coded Barcode: ${formatBarcodeDisplay(newBarcode, p.sellingPrice)}`);
@@ -845,7 +842,7 @@ export default function Inventory() {
                       variant="ghost" 
                       size="xs" 
                       className="h-5 px-1.5 text-[8.5px] bg-slate-100 hover:bg-slate-200 uppercase font-black tracking-tighter rounded"
-                      onClick={() => { setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
+                      onClick={() => { setSelectedProduct(p); setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
                     >
                       <BarcodeIcon className="h-3 w-3 mr-1" /> Label
                     </Button>
@@ -856,10 +853,11 @@ export default function Inventory() {
                     size="xs" 
                     className="h-5 px-1.5 text-[8.5px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter rounded border border-blue-200"
                     onClick={async () => {
-                      const newBarcode = generateCodedBarcode(p.sellingPrice, products, p.id);
+                      const newBarcode = generateCodedBarcode(products, p.id);
                       const updated = { ...p, barcode: newBarcode };
                       await DataService.saveProduct(updated);
                       await refreshProducts();
+                      setSelectedProduct(updated);
                       setSelectedBarcode(newBarcode);
                       setIsBarcodeViewOpen(true);
                       toast.success(`Generated Coded Barcode: ${formatBarcodeDisplay(newBarcode, p.sellingPrice)}`);
@@ -942,8 +940,9 @@ export default function Inventory() {
               </div>
               
               {selectedBarcode && (() => {
-                const currProd = products.find(p => p.barcode === selectedBarcode);
+                const currProd = selectedProduct || products.find(p => p.barcode === selectedBarcode);
                 const activeBrand = customBrandText.trim() || shopName || 'DO BILL';
+                const effectivePrice = currProd?.sellingPrice ?? (currProd as any)?.selling_price ?? 0;
 
                 return (
                   <div className="flex flex-col items-center justify-center w-full mt-2">
@@ -970,7 +969,7 @@ export default function Inventory() {
                       <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-1">
                         <Barcode 
                           value={selectedBarcode} 
-                          text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
+                          text={formatBarcodeDisplay(selectedBarcode, effectivePrice)}
                           width={2.5}
                           height={62} 
                           fontSize={15}
@@ -981,31 +980,32 @@ export default function Inventory() {
                       </div>
 
                       {/* Selling Price / MRP */}
-                      {showPriceOnLabel && currProd?.sellingPrice !== undefined && (
+                      {showPriceOnLabel && effectivePrice > 0 && (
                         <div className="price text-sm font-black text-slate-950 tracking-tight mt-1">
-                          MRP ₹{currProd.sellingPrice.toFixed(2)}
+                          MRP ₹{Number(effectivePrice).toFixed(2)}
                         </div>
                       )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-center gap-2">
                       <span className="font-mono text-xs font-black text-slate-800 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200" title="Coded Barcode Display">
-                        {formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
+                        {formatBarcodeDisplay(selectedBarcode, effectivePrice)}
                       </span>
                       {currProd && (
                         <button
                           type="button"
                           onClick={async () => {
-                            const newCode = generateCodedBarcode(currProd.sellingPrice, products, currProd.id);
+                            const newCode = generateCodedBarcode(products, currProd.id);
                             const updated = { ...currProd, barcode: newCode };
                             await DataService.saveProduct(updated);
                             await refreshProducts();
+                            setSelectedProduct(updated);
                             setSelectedBarcode(newCode);
-                            toast.success(`Generated Coded Barcode: ${formatBarcodeDisplay(newCode, currProd.sellingPrice)}`);
+                            toast.success(`Generated Coded Barcode: ${formatBarcodeDisplay(newCode, effectivePrice)}`);
                           }}
                           className="text-[10px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
                         >
-                          ⚡ Regenerate (703-99-41)
+                          ⚡ Regenerate (7041)
                         </button>
                       )}
                     </div>
