@@ -1003,126 +1003,71 @@ export default function Inventory() {
                 />
               </div>
             </div>
-
-            {/* Label Content Toggles & Quantity Selector */}
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-sm max-w-md mx-auto w-full space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-500">Sticker Fields</span>
-                <div className="flex items-center gap-4 text-xs font-bold text-slate-700">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={showNameOnLabel} 
-                      onChange={e => setShowNameOnLabel(e.target.checked)}
-                      className="rounded accent-blue-600 h-3.5 w-3.5"
-                    />
-                    <span>Name</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={showPriceOnLabel} 
-                      onChange={e => setShowPriceOnLabel(e.target.checked)}
-                      className="rounded accent-blue-600 h-3.5 w-3.5"
-                    />
-                    <span>MRP (₹)</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Quantity Counter & Quick Presets */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-slate-800 font-extrabold leading-tight">
-                      Print Quantity
-                    </p>
-                    <p className="text-[11px] text-slate-400 font-medium">
-                      Exact thermal label copies
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 rounded-xl font-black text-sm border-slate-200 hover:bg-slate-100"
-                      onClick={() => setPrintQuantity(prev => Math.max(1, (prev || 1) - 1))}
-                    >
-                      -
-                    </Button>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      max={10000} 
-                      value={printQuantity || ''} 
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === '') {
-                          setPrintQuantity(0);
-                        } else {
-                          const num = parseInt(val, 10);
-                          if (!isNaN(num)) {
-                            setPrintQuantity(Math.max(1, num));
-                          }
-                        }
-                      }}
-                      onBlur={() => {
-                        if (!printQuantity || printQuantity < 1) {
-                          setPrintQuantity(1);
-                        }
-                      }}
-                      className="h-9 w-16 text-center font-black text-sm bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 rounded-xl font-black text-sm border-slate-200 hover:bg-slate-100"
-                      onClick={() => setPrintQuantity(prev => Math.min(10000, (prev || 0) + 1))}
-                    >
-                      +
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Quick Preset Buttons */}
-                <div className="flex items-center justify-between gap-1.5 pt-1">
-                  {[1, 5, 10, 20, 50, 100].map(qty => (
-                    <button
-                      key={qty}
-                      type="button"
-                      onClick={() => setPrintQuantity(qty)}
-                      className={`flex-1 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
-                        printQuantity === qty 
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      {qty}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
-          <DialogFooter className="p-4 sm:p-5 bg-white border-t border-slate-100 flex items-center justify-between no-print shrink-0">
+          <DialogFooter className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 no-print shrink-0">
             <Button 
               variant="ghost" 
               onClick={() => setIsBarcodeViewOpen(false)} 
-              className="font-bold text-slate-500 h-11 rounded-xl px-5 text-sm hover:bg-slate-100"
+              className="font-bold text-slate-500 h-11 rounded-xl px-5 text-sm hover:bg-slate-100 w-full sm:w-auto"
             >
               Cancel
             </Button>
 
-            <Button 
-              onClick={handlePrint} 
-              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-8 font-black uppercase tracking-tight rounded-xl"
-            >
-              <Printer className="h-4 w-4" /> 
-              Print {printQuantity} {printQuantity === 1 ? 'Label' : 'Labels'}
-            </Button>
+            <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <span className="text-[11px] font-extrabold text-slate-500 px-2 uppercase tracking-wider">Qty</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg font-black text-sm hover:bg-white text-slate-700"
+                  onClick={() => setPrintQuantity(prev => Math.max(1, (prev || 1) - 1))}
+                >
+                  -
+                </Button>
+                <Input 
+                  type="number" 
+                  min={1} 
+                  max={10000} 
+                  value={printQuantity || ''} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setPrintQuantity(0);
+                    } else {
+                      const num = parseInt(val, 10);
+                      if (!isNaN(num)) {
+                        setPrintQuantity(Math.max(1, num));
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!printQuantity || printQuantity < 1) {
+                      setPrintQuantity(1);
+                    }
+                  }}
+                  className="h-8 w-14 text-center font-black text-sm bg-white border-slate-200 rounded-lg p-0"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg font-black text-sm hover:bg-white text-slate-700"
+                  onClick={() => setPrintQuantity(prev => Math.min(10000, (prev || 0) + 1))}
+                >
+                  +
+                </Button>
+              </div>
+
+              <Button 
+                onClick={handlePrint} 
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-7 font-black uppercase tracking-tight rounded-xl flex-1 sm:flex-initial"
+              >
+                <Printer className="h-4 w-4" /> 
+                Print {printQuantity} {printQuantity === 1 ? 'Label' : 'Labels'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
