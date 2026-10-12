@@ -147,37 +147,11 @@ export default function Inventory() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Advanced Barcode Label Customization & Precision Layout
-  const initialPrinterConfig = useMemo(() => getPrinterConfig(), []);
-  const [labelSize, setLabelSize] = useState<string>(() => initialPrinterConfig.labelSize || '50x30');
-  const [customWidthMm, setCustomWidthMm] = useState<number>(() => initialPrinterConfig.labelCustomWidthMm || 50);
-  const [customHeightMm, setCustomHeightMm] = useState<number>(() => initialPrinterConfig.labelCustomHeightMm || 30);
+  // Barcode Label Customization
   const [showBrandOnLabel, setShowBrandOnLabel] = useState<boolean>(true);
   const [showNameOnLabel, setShowNameOnLabel] = useState<boolean>(true);
   const [showPriceOnLabel, setShowPriceOnLabel] = useState<boolean>(true);
   const [customBrandText, setCustomBrandText] = useState<string>('');
-
-  const handleLabelSizeChange = (newSize: string) => {
-    setLabelSize(newSize);
-    if (newSize !== 'custom' && newSize.includes('x')) {
-      const parts = newSize.split('x');
-      const w = parseFloat(parts[0]);
-      const h = parseFloat(parts[1]);
-      if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
-        setCustomWidthMm(w);
-        setCustomHeightMm(h);
-        savePrinterConfig({ labelSize: newSize, labelCustomWidthMm: w, labelCustomHeightMm: h });
-        return;
-      }
-    }
-    savePrinterConfig({ labelSize: newSize, labelCustomWidthMm: customWidthMm, labelCustomHeightMm: customHeightMm });
-  };
-
-  const handleCustomDimensionsChange = (w: number, h: number) => {
-    setCustomWidthMm(w);
-    setCustomHeightMm(h);
-    savePrinterConfig({ labelSize: 'custom', labelCustomWidthMm: w, labelCustomHeightMm: h });
-  };
 
   useEffect(() => {
     if (shopName && !customBrandText) {
@@ -312,19 +286,10 @@ export default function Inventory() {
     }
   };
 
-  const getCleanBarcodeSVG = (
-    barcodeValue: string,
-    price?: number,
-    labelWidthMm: number = 50,
-    labelHeightMm: number = 30
-  ) => {
+  const getCleanBarcodeSVG = (barcodeValue: string, price?: number) => {
     const displayTxt = formatBarcodeDisplay(barcodeValue, price);
-    const targetBarHeightMm = Math.max(9, Math.min(70, Math.round(labelHeightMm * (showNameOnLabel && showBrandOnLabel ? 0.40 : 0.50))));
-    const barcodeBarHeightPx = Math.round(targetBarHeightMm * 3.78);
-    const barWidth = getBarcodeBarWidth(barcodeValue, labelWidthMm);
-    const barcodeFontSize = Math.max(9, Math.min(14, Math.round(labelWidthMm * 0.12 + labelHeightMm * 0.06)));
 
-    // 1. Pristine native SVG generation via JsBarcode
+    // 1. Direct native generation via JsBarcode
     try {
       if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -334,20 +299,26 @@ export default function Inventory() {
           JsBarcodeFn(svgElement, barcodeValue, {
             format: 'CODE128',
             text: displayTxt,
-            width: barWidth,
-            height: barcodeBarHeightPx,
-            fontSize: barcodeFontSize,
+            width: 2.2, // Bold 2.2px bar thickness: dark, prominent and easy to scan
+            height: 52, // Tall 52px bars
+            fontSize: 14,
             fontOptions: 'bold',
             displayValue: true,
-            margin: 3,
+            margin: 4,
             background: '#ffffff',
             lineColor: '#000000'
           });
 
+          // Read the natural width and height produced by JsBarcode
+          const naturalW = parseFloat(svgElement.getAttribute('width') || '0') || 240;
+          const naturalH = parseFloat(svgElement.getAttribute('height') || '0') || 70;
+
+          // Crucial: Set viewBox so the SVG can scale to any width and height without collapsing
+          svgElement.setAttribute('viewBox', `0 0 ${naturalW} ${naturalH}`);
           svgElement.setAttribute('width', '100%');
           svgElement.setAttribute('height', '100%');
-          svgElement.setAttribute('style', `display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 96% !important; height: auto !important; max-height: ${targetBarHeightMm + 6}mm !important; overflow: visible !important; shape-rendering: crispEdges !important;`);
           svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+          svgElement.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 95% !important; height: auto !important; max-height: 85px !important; shape-rendering: crispEdges !important;');
           
           svgElement.querySelectorAll('rect').forEach((r: any) => {
             r.setAttribute('fill', '#000000');
@@ -355,14 +326,15 @@ export default function Inventory() {
           });
           svgElement.querySelectorAll('text').forEach((t: any) => {
             t.setAttribute('fill', '#000000');
-            t.setAttribute('font-weight', 'bold');
+            t.setAttribute('font-weight', '900');
+            t.setAttribute('font-size', '14px');
           });
 
           return svgElement.outerHTML;
         }
       }
     } catch (e) {
-      console.warn('Direct JsBarcode generation fallback:', e);
+      console.warn('JsBarcode generation error:', e);
     }
 
     // 2. Clone from live preview element if already mounted
@@ -371,14 +343,14 @@ export default function Inventory() {
     if (rawSvg) {
       try {
         const clone = rawSvg.cloneNode(true) as SVGElement;
-        const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 180;
-        const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 54;
+        const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 240;
+        const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 70;
         
         clone.setAttribute('viewBox', `0 0 ${origW} ${origH}`);
         clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         clone.setAttribute('width', '100%');
         clone.setAttribute('height', '100%');
-        clone.setAttribute('style', `display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 96% !important; height: auto !important; max-height: ${targetBarHeightMm + 6}mm !important; overflow: visible !important; shape-rendering: crispEdges !important;`);
+        clone.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: 100% !important; max-width: 95% !important; height: auto !important; max-height: 85px !important; shape-rendering: crispEdges !important;');
         
         clone.querySelectorAll('rect').forEach((r: any) => {
           r.setAttribute('fill', '#000000');
@@ -386,7 +358,8 @@ export default function Inventory() {
         });
         clone.querySelectorAll('text').forEach((t: any) => {
           t.setAttribute('fill', '#000000');
-          t.setAttribute('font-weight', 'bold');
+          t.setAttribute('font-weight', '900');
+          t.setAttribute('font-size', '14px');
         });
         return clone.outerHTML;
       } catch (err) {
@@ -394,7 +367,7 @@ export default function Inventory() {
       }
     }
 
-    return `<div style="text-align: center; font-family: monospace; font-weight: 900; font-size: 11pt; color: #000; letter-spacing: 1.5px; margin: 2mm auto;">${displayTxt}</div>`;
+    return `<div style="text-align: center; font-family: monospace; font-weight: 900; font-size: 14pt; color: #000; letter-spacing: 2px; margin: 4px auto;">${displayTxt}</div>`;
   };
 
   const generateBarcodeFullHTML = () => {
@@ -404,8 +377,7 @@ export default function Inventory() {
     const price = product?.sellingPrice ?? 0;
     const brand = customBrandText.trim() || shopName || product?.brand || 'DO BILL';
 
-    const parsedDims = parseLabelDimensions(labelSize, customWidthMm, customHeightMm);
-    const svgHTML = getCleanBarcodeSVG(selectedBarcode || '', price, parsedDims.widthMm, parsedDims.heightMm);
+    const svgHTML = getCleanBarcodeSVG(selectedBarcode || '', price);
 
     const cards = Array(totalLabels).fill(0).map(() => `
       <div class="print-page">
@@ -418,7 +390,7 @@ export default function Inventory() {
       </div>
     `).join('');
 
-    return buildBarcodeLabelHTML(cards, labelSize, parsedDims.widthMm, parsedDims.heightMm);
+    return buildBarcodeLabelHTML(cards);
   };
 
   const handlePrint = async () => {
@@ -426,44 +398,17 @@ export default function Inventory() {
     if (!fullHTML) return;
 
     const cfg = getPrinterConfig();
-    const parsedDims = parseLabelDimensions(labelSize, customWidthMm, customHeightMm);
-    const toastId = toast.loading('🖨️ Printing barcode label...');
+    const toastId = toast.loading('🖨️ Opening print dialog...');
 
     try {
-      const { DirectPrintService } = await import('@/services/directPrintService');
-      
-      if (DirectPrintService.isPrinterConnected() && selectedBarcode) {
-        const product = products.find(p => p.barcode === selectedBarcode);
-        if (product) {
-          try {
-            await DirectPrintService.printBarcodeDirect(
-              showNameOnLabel ? product.name : '',
-              selectedBarcode,
-              showPriceOnLabel ? product.sellingPrice : 0,
-              showBrandOnLabel ? (customBrandText.trim() || shopName) : '',
-              1,
-              parsedDims.widthMm,
-              parsedDims.heightMm
-            );
-            toast.dismiss(toastId);
-            toast.success("Barcode Sent to Thermal Printer!");
-            return;
-          } catch (directErr) {
-            console.warn("Direct thermal barcode print failed, falling back to universal print:", directErr);
-          }
-        }
-      }
-
       const res = await universalPrintHTML(fullHTML, {
         printerName: cfg.labelPrinterName,
-        isLabel: true,
-        labelWidthMm: parsedDims.widthMm,
-        labelHeightMm: parsedDims.heightMm
+        isLabel: true
       });
 
       toast.dismiss(toastId);
       if (res.success) {
-        toast.success('Printed barcode label successfully!');
+        toast.success('Sent to printer!');
       } else {
         toast.error(res.message);
       }
@@ -973,51 +918,47 @@ export default function Inventory() {
               </div>
               
               {selectedBarcode && (() => {
-                const parsedDims = parseLabelDimensions(labelSize, customWidthMm, customHeightMm);
                 const currProd = products.find(p => p.barcode === selectedBarcode);
                 const activeBrand = customBrandText.trim() || shopName || 'DO BILL';
 
                 return (
                   <div className="flex flex-col items-center justify-center w-full mt-2">
-                    {/* Exact Aspect-Ratio Sticker Preview */}
+                    {/* Centered Sticker Preview */}
                     <div 
                       id="printable-label-area" 
-                      style={{
-                        aspectRatio: `${parsedDims.widthMm} / ${parsedDims.heightMm}`,
-                      }}
-                      className="bg-white p-2.5 sm:p-3 rounded-xl shadow-md border border-slate-300 overflow-hidden max-w-[270px] w-full flex flex-col items-center justify-between text-center my-2 transition-all duration-300 min-h-[142px]"
+                      className="bg-white p-4 rounded-xl shadow-md border border-slate-300 overflow-hidden max-w-[320px] w-full flex flex-col items-center justify-between text-center my-2 transition-all duration-300 min-h-[160px]"
                     >
                       {/* Shop / Store Name */}
                       {showBrandOnLabel && (
-                        <div className="brand w-full text-center font-black text-[9.5px] tracking-wider uppercase text-slate-800 truncate px-1">
+                        <div className="brand w-full text-center font-black text-xs tracking-wider uppercase text-slate-800 truncate px-1 mb-1">
                           {activeBrand}
                         </div>
                       )}
 
                       {/* Product Name */}
                       {showNameOnLabel && (
-                        <div className="name line-clamp-2 w-full text-center font-extrabold text-[10.5px] text-slate-900 px-1 leading-tight my-0.5">
+                        <div className="name line-clamp-2 w-full text-center font-extrabold text-sm text-slate-900 px-1 leading-tight my-1">
                           {currProd?.name || 'Product'}
                         </div>
                       )}
 
                       {/* Barcode SVG Container (Strictly Centered with Quiet Zones) */}
-                      <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-0.5">
+                      <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-1">
                         <Barcode 
                           value={selectedBarcode} 
                           text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
-                          width={getBarcodeBarWidth(selectedBarcode, parsedDims.widthMm)}
-                          height={Math.max(28, Math.min(75, Math.round(parsedDims.heightMm * 1.4)))} 
-                          fontSize={Math.max(9, Math.min(13, Math.round(parsedDims.widthMm * 0.12 + parsedDims.heightMm * 0.05)))}
+                          width={2.2}
+                          height={52} 
+                          fontSize={14}
                           fontOptions="bold"
                           background="transparent"
-                          margin={3}
+                          margin={4}
                         />
                       </div>
 
                       {/* Selling Price / MRP */}
                       {showPriceOnLabel && currProd?.sellingPrice !== undefined && (
-                        <div className="price text-[11px] font-black text-slate-950 tracking-tight mt-0.5">
+                        <div className="price text-sm font-black text-slate-950 tracking-tight mt-1">
                           MRP ₹{currProd.sellingPrice.toFixed(2)}
                         </div>
                       )}
@@ -1048,16 +989,16 @@ export default function Inventory() {
                 );
               })()}
               <p className="mt-3 text-[10px] text-slate-400 font-bold uppercase tracking-[0.12em] text-center">
-                Calibrated Thermal Sticker • Zero-Margin Page Setup
+                Standard Print Setup • Configure Paper & Roll Directly in Printer Dialog
               </p>
             </div>
 
-            {/* Label Dimensions & Size Configuration */}
+            {/* Content Options & Store Title */}
             <div className="max-w-md mx-auto w-full space-y-3">
               <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Label Size & Dimensions
+                    Label Content Elements
                   </Label>
                   <Button
                     variant="ghost"
@@ -1069,58 +1010,8 @@ export default function Inventory() {
                   </Button>
                 </div>
 
-                <select
-                  value={labelSize}
-                  onChange={(e) => handleLabelSizeChange(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800"
-                >
-                  <option value="50x30">50 × 30 mm (Standard Retail - Most Common)</option>
-                  <option value="50x25">50 × 25 mm (Compact Retail)</option>
-                  <option value="40x25">40 × 25 mm (Jewelry / Small Items)</option>
-                  <option value="38x25">38 × 25 mm (1.5" × 1")</option>
-                  <option value="50x38">50 × 38 mm (2" × 1.5")</option>
-                  <option value="75x50">75 × 50 mm (3" × 2" - Medium Retail / Box)</option>
-                  <option value="100x50">100 × 50 mm (4" × 2" - Shelf / Logistics)</option>
-                  <option value="100x75">100 × 75 mm (4" × 3" - Warehouse / Shipping)</option>
-                  <option value="100x150">100 × 150 mm (4" × 6" - Courier standard)</option>
-                  <option value="custom">⚙️ Custom Dimensions (mm)</option>
-                </select>
-
-                {labelSize === 'custom' && (
-                  <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div>
-                      <Label className="text-[11px] font-bold text-slate-600">Width (mm)</Label>
-                      <Input
-                        type="number"
-                        min={15}
-                        max={120}
-                        value={customWidthMm}
-                        onChange={(e) => handleCustomDimensionsChange(
-                          Math.max(10, Math.min(120, Number(e.target.value) || 50)),
-                          customHeightMm
-                        )}
-                        className="h-9 text-xs font-bold mt-1 bg-white"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[11px] font-bold text-slate-600">Height (mm)</Label>
-                      <Input
-                        type="number"
-                        min={10}
-                        max={200}
-                        value={customHeightMm}
-                        onChange={(e) => handleCustomDimensionsChange(
-                          customWidthMm,
-                          Math.max(10, Math.min(200, Number(e.target.value) || 30))
-                        )}
-                        className="h-9 text-xs font-bold mt-1 bg-white"
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {/* Content Elements Toggles */}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-1">
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input 
                       type="checkbox" 
@@ -1128,7 +1019,7 @@ export default function Inventory() {
                       onChange={e => setShowNameOnLabel(e.target.checked)}
                       className="rounded accent-blue-600 h-3.5 w-3.5"
                     />
-                    <span>Name</span>
+                    <span>Product Name</span>
                   </label>
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input 
