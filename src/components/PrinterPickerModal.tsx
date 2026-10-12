@@ -223,37 +223,66 @@ export const PrinterPickerModal: React.FC<PrinterPickerModalProps> = ({ open, on
   const handleRunTestLabelPrint = async () => {
     setIsTestLabelPrinting(true);
     try {
+      const dims = parseLabelDimensions(
+        printerConfig.labelSize,
+        printerConfig.labelCustomWidthMm,
+        printerConfig.labelCustomHeightMm
+      );
+      const displayTxt = '243 - Rs. 499 - 12';
       const labelCardHTML = `
-        <div class="label-card">
-          <div class="brand">DO BILL DEMO SHOP</div>
-          <div class="name">Sample Product</div>
-          <div class="barcode-container">
-            <svg viewBox="0 0 100 30" width="100%" height="100%">
-              <rect x="5" y="0" width="3" height="30" fill="#000"/>
-              <rect x="11" y="0" width="2" height="30" fill="#000"/>
-              <rect x="16" y="0" width="5" height="30" fill="#000"/>
-              <rect x="24" y="0" width="2" height="30" fill="#000"/>
-              <rect x="29" y="0" width="4" height="30" fill="#000"/>
-              <rect x="36" y="0" width="2" height="30" fill="#000"/>
-              <rect x="41" y="0" width="6" height="30" fill="#000"/>
-              <rect x="50" y="0" width="2" height="30" fill="#000"/>
-              <rect x="55" y="0" width="4" height="30" fill="#000"/>
-              <rect x="62" y="0" width="3" height="30" fill="#000"/>
-              <rect x="68" y="0" width="2" height="30" fill="#000"/>
-              <rect x="73" y="0" width="5" height="30" fill="#000"/>
-              <rect x="81" y="0" width="2" height="30" fill="#000"/>
-              <rect x="86" y="0" width="4" height="30" fill="#000"/>
-              <rect x="93" y="0" width="2" height="30" fill="#000"/>
-            </svg>
-            <div style="font-family: monospace; font-size: 8.5pt; font-weight: 800; letter-spacing: 1px; margin-top: 2px;">24312</div>
+        <div class="print-page">
+          <div class="label-card">
+            <div class="brand">DO BILL DEMO SHOP</div>
+            <div class="name">Sample Test Product</div>
+            <div class="barcode-container">
+              <svg viewBox="0 0 160 50" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block;margin:0 auto;max-height:${Math.round(dims.heightMm * 0.45)}mm;">
+                <rect x="5" y="0" width="2" height="34" fill="#000"/>
+                <rect x="9" y="0" width="4" height="34" fill="#000"/>
+                <rect x="15" y="0" width="2" height="34" fill="#000"/>
+                <rect x="19" y="0" width="5" height="34" fill="#000"/>
+                <rect x="26" y="0" width="2" height="34" fill="#000"/>
+                <rect x="30" y="0" width="4" height="34" fill="#000"/>
+                <rect x="36" y="0" width="3" height="34" fill="#000"/>
+                <rect x="42" y="0" width="2" height="34" fill="#000"/>
+                <rect x="46" y="0" width="5" height="34" fill="#000"/>
+                <rect x="53" y="0" width="2" height="34" fill="#000"/>
+                <rect x="58" y="0" width="4" height="34" fill="#000"/>
+                <rect x="64" y="0" width="2" height="34" fill="#000"/>
+                <rect x="68" y="0" width="5" height="34" fill="#000"/>
+                <rect x="75" y="0" width="3" height="34" fill="#000"/>
+                <rect x="80" y="0" width="2" height="34" fill="#000"/>
+                <rect x="84" y="0" width="4" height="34" fill="#000"/>
+                <rect x="90" y="0" width="2" height="34" fill="#000"/>
+                <rect x="94" y="0" width="5" height="34" fill="#000"/>
+                <rect x="101" y="0" width="3" height="34" fill="#000"/>
+                <rect x="106" y="0" width="2" height="34" fill="#000"/>
+                <rect x="110" y="0" width="4" height="34" fill="#000"/>
+                <rect x="116" y="0" width="2" height="34" fill="#000"/>
+                <rect x="120" y="0" width="4" height="34" fill="#000"/>
+                <rect x="126" y="0" width="2" height="34" fill="#000"/>
+                <rect x="130" y="0" width="5" height="34" fill="#000"/>
+                <rect x="137" y="0" width="3" height="34" fill="#000"/>
+                <rect x="142" y="0" width="2" height="34" fill="#000"/>
+                <rect x="146" y="0" width="4" height="34" fill="#000"/>
+                <rect x="152" y="0" width="2" height="34" fill="#000"/>
+                <text x="80" y="46" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#000">${displayTxt}</text>
+              </svg>
+            </div>
+            <div class="price">MRP ₹499.00</div>
           </div>
-          <div class="price">₹499.00</div>
         </div>
       `;
-      const html = buildBarcodeLabelHTML(labelCardHTML, printerConfig.labelPrinterName || printerConfig.billPrinterName);
+      const html = buildBarcodeLabelHTML(
+        labelCardHTML,
+        printerConfig.labelSize,
+        dims.widthMm,
+        dims.heightMm
+      );
       await universalPrintHTML(html, {
         printerName: printerConfig.labelPrinterName,
-        isLabel: true
+        isLabel: true,
+        labelWidthMm: dims.widthMm,
+        labelHeightMm: dims.heightMm
       });
       toast.success("Test label printed!");
     } catch (err: any) {
@@ -381,20 +410,78 @@ export const PrinterPickerModal: React.FC<PrinterPickerModalProps> = ({ open, on
                 </div>
               )}
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Thermal Label Size & Page Dimensions</Label>
-                <div className="bg-white border border-emerald-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-slate-800 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-600 text-sm">⚡</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-slate-700">Thermal Label Size & Dimensions</Label>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded">
+                    Active: {printerConfig.labelSize === 'custom' ? `${printerConfig.labelCustomWidthMm || 50}×${printerConfig.labelCustomHeightMm || 30}mm` : printerConfig.labelSize}
+                  </span>
+                </div>
+                <select
+                  value={printerConfig.labelSize || '50x30'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'custom') {
+                      handleUpdateConfig({ labelSize: 'custom' });
+                    } else if (val.includes('x')) {
+                      const parts = val.split('x');
+                      const w = parseFloat(parts[0]);
+                      const h = parseFloat(parts[1]);
+                      handleUpdateConfig({
+                        labelSize: val,
+                        labelCustomWidthMm: !isNaN(w) ? w : (printerConfig.labelCustomWidthMm || 50),
+                        labelCustomHeightMm: !isNaN(h) ? h : (printerConfig.labelCustomHeightMm || 30),
+                      });
+                    } else {
+                      handleUpdateConfig({ labelSize: val });
+                    }
+                  }}
+                  className="w-full h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold"
+                >
+                  <option value="50x30">50 × 30 mm (Standard Retail - Most Common)</option>
+                  <option value="50x25">50 × 25 mm (Compact Retail)</option>
+                  <option value="40x25">40 × 25 mm (Jewelry / Small Items)</option>
+                  <option value="38x25">38 × 25 mm (1.5" × 1")</option>
+                  <option value="50x38">50 × 38 mm (2" × 1.5")</option>
+                  <option value="75x50">75 × 50 mm (3" × 2" - Medium Retail / Box)</option>
+                  <option value="100x50">100 × 50 mm (4" × 2" - Shelf / Logistics)</option>
+                  <option value="100x75">100 × 75 mm (4" × 3" - Warehouse / Shipping)</option>
+                  <option value="100x150">100 × 150 mm (4" × 6" - Courier standard)</option>
+                  <option value="custom">⚙️ Custom Dimensions (mm)</option>
+                </select>
+
+                {printerConfig.labelSize === 'custom' && (
+                  <div className="grid grid-cols-2 gap-2 p-3 bg-white border border-emerald-200 rounded-xl shadow-xs">
                     <div>
-                      <p className="font-extrabold text-emerald-950">Fully Automatic Label Sizing</p>
-                      <p className="text-[11px] font-semibold text-slate-500">Auto-detects printer printable width & fits content dynamically.</p>
+                      <Label className="text-[11px] font-bold text-slate-600">Width (mm)</Label>
+                      <Input
+                        type="number"
+                        min={15}
+                        max={120}
+                        value={printerConfig.labelCustomWidthMm || 50}
+                        onChange={(e) => handleUpdateConfig({
+                          labelSize: 'custom',
+                          labelCustomWidthMm: Math.max(10, Math.min(120, Number(e.target.value) || 50))
+                        })}
+                        className="h-8 text-xs font-bold mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] font-bold text-slate-600">Height (mm)</Label>
+                      <Input
+                        type="number"
+                        min={10}
+                        max={200}
+                        value={printerConfig.labelCustomHeightMm || 30}
+                        onChange={(e) => handleUpdateConfig({
+                          labelSize: 'custom',
+                          labelCustomHeightMm: Math.max(10, Math.min(200, Number(e.target.value) || 30))
+                        })}
+                        className="h-8 text-xs font-bold mt-1"
+                      />
                     </div>
                   </div>
-                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-extrabold uppercase text-[10px]">
-                    Auto-Fit
-                  </Badge>
-                </div>
+                )}
               </div>
 
               {/* Thermal Label Printer Setup & Calibration Guide */}
