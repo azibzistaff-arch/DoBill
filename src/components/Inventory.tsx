@@ -124,6 +124,7 @@ export default function Inventory() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isBarcodeViewOpen, setIsBarcodeViewOpen] = useState(false);
   const [selectedBarcode, setSelectedBarcode] = useState<string | null>(null);
+  const [printQuantity, setPrintQuantity] = useState(1);
   const [printMode, setPrintMode] = useState<'sheet' | 'roll'>('roll');
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
   const [printOnSave, setPrintOnSave] = useState(false);
@@ -292,7 +293,7 @@ export default function Inventory() {
   };
 
   const generateBarcodeFullHTML = () => {
-    const totalLabels = 1;
+    const totalLabels = Math.max(1, printQuantity || 1);
     const product = products.find(p => p.barcode === selectedBarcode);
     const name = product?.name || 'Product';
     const price = product?.sellingPrice ?? 0;
@@ -321,7 +322,8 @@ export default function Inventory() {
 
     const cfg = getPrinterConfig();
     const parsedDims = parseLabelDimensions(labelSize);
-    const toastId = toast.loading('🖨️ Printing barcode label...');
+    const qty = Math.max(1, printQuantity || 1);
+    const toastId = toast.loading(`🖨️ Printing ${qty} barcode ${qty === 1 ? 'label' : 'labels'}...`);
 
     try {
       const { DirectPrintService } = await import('@/services/directPrintService');
@@ -335,10 +337,10 @@ export default function Inventory() {
               selectedBarcode,
               showPriceOnLabel ? product.sellingPrice : 0,
               showBrandOnLabel ? (customBrandText.trim() || shopName) : '',
-              1
+              qty
             );
             toast.dismiss(toastId);
-            toast.success("Barcode Sent to Thermal Printer!");
+            toast.success(`Printed ${qty} barcode ${qty === 1 ? 'label' : 'labels'} on Thermal Printer!`);
             return;
           } catch (directErr) {
             console.warn("Direct thermal barcode print failed, falling back to universal print:", directErr);
@@ -355,7 +357,7 @@ export default function Inventory() {
 
       toast.dismiss(toastId);
       if (res.success) {
-        toast.success('Printed barcode label successfully!');
+        toast.success(`Printed ${qty} barcode ${qty === 1 ? 'label' : 'labels'} successfully!`);
       } else {
         toast.error(res.message);
       }
@@ -663,7 +665,7 @@ export default function Inventory() {
                         variant="ghost" 
                         size="xs" 
                         className="h-5 px-1.5 text-[8px] bg-slate-100 hover:bg-slate-200 uppercase font-black tracking-tighter"
-                        onClick={() => { setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
+                        onClick={() => { setSelectedBarcode(p.barcode); setPrintQuantity(1); setIsBarcodeViewOpen(true); }}
                       >
                         <BarcodeIcon className="h-3 w-3 mr-1" /> Label
                       </Button>
@@ -679,6 +681,7 @@ export default function Inventory() {
                         await DataService.saveProduct(updated);
                         await refreshProducts();
                         setSelectedBarcode(newBarcode);
+                        setPrintQuantity(1);
                         setIsBarcodeViewOpen(true);
                         toast.success(`Generated 5-digit barcode: ${newBarcode}`);
                       }}
@@ -766,7 +769,7 @@ export default function Inventory() {
                       variant="ghost" 
                       size="xs" 
                       className="h-5 px-1.5 text-[8.5px] bg-slate-100 hover:bg-slate-200 uppercase font-black tracking-tighter rounded"
-                      onClick={() => { setSelectedBarcode(p.barcode); setIsBarcodeViewOpen(true); }}
+                      onClick={() => { setSelectedBarcode(p.barcode); setPrintQuantity(1); setIsBarcodeViewOpen(true); }}
                     >
                       <BarcodeIcon className="h-3 w-3 mr-1" /> Label
                     </Button>
@@ -782,6 +785,7 @@ export default function Inventory() {
                       await DataService.saveProduct(updated);
                       await refreshProducts();
                       setSelectedBarcode(newBarcode);
+                      setPrintQuantity(1);
                       setIsBarcodeViewOpen(true);
                       toast.success(`Generated 5-digit barcode: ${newBarcode}`);
                     }}
@@ -990,24 +994,114 @@ export default function Inventory() {
                 />
               </div>
             </div>
+
+            {/* Display Options for Product Name & MRP Price */}
+            <div className="flex items-center justify-around max-w-md mx-auto w-full p-3 bg-white rounded-2xl border border-slate-200/90 shadow-sm">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                <input 
+                  type="checkbox" 
+                  checked={showNameOnLabel} 
+                  onChange={e => setShowNameOnLabel(e.target.checked)}
+                  className="rounded accent-blue-600 h-4 w-4"
+                />
+                <span>Product Name</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                <input 
+                  type="checkbox" 
+                  checked={showPriceOnLabel} 
+                  onChange={e => setShowPriceOnLabel(e.target.checked)}
+                  className="rounded accent-blue-600 h-4 w-4"
+                />
+                <span>MRP Price</span>
+              </label>
+            </div>
           </div>
 
           <DialogFooter className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 no-print shrink-0">
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsBarcodeViewOpen(false)} 
-              className="font-bold text-slate-500 h-11 rounded-xl px-5 text-sm hover:bg-slate-100 w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsBarcodeViewOpen(false)} 
+                className="font-bold text-slate-500 h-11 rounded-xl px-4 text-sm hover:bg-slate-100"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPrinterModalOpen(true)}
+                className="font-bold text-slate-700 h-11 rounded-xl px-3 text-xs border-slate-200 hover:bg-slate-50 flex items-center gap-1.5"
+                title="Configure Thermal or Universal Printer"
+              >
+                <Printer className="h-4 w-4 text-slate-500" />
+                <span className="hidden sm:inline">Printer Setup</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleOpenNewWindow}
+                className="font-bold text-slate-700 h-11 rounded-xl px-3 text-xs border-slate-200 hover:bg-slate-50 flex items-center gap-1.5"
+                title="Open Barcode in New Tab / Print Window"
+              >
+                <ExternalLink className="h-4 w-4 text-slate-500" />
+                <span className="hidden sm:inline">New Tab</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDownloadHTML}
+                className="font-bold text-slate-700 h-11 rounded-xl px-3 text-xs border-slate-200 hover:bg-slate-50 flex items-center gap-1.5"
+                title="Download Barcode HTML File"
+              >
+                <Download className="h-4 w-4 text-slate-500" />
+              </Button>
+            </div>
 
             <div className="flex items-center justify-end gap-3 w-full sm:w-auto">
+              {/* Quantity Selector */}
+              <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 border border-slate-200">
+                <span className="text-xs font-bold text-slate-500 px-2 select-none">Qty:</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg hover:bg-white text-slate-700 font-bold"
+                  onClick={() => setPrintQuantity(prev => Math.max(1, prev - 1))}
+                >
+                  -
+                </Button>
+                <Input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={printQuantity}
+                  onChange={e => {
+                    const val = parseInt(e.target.value, 10);
+                    setPrintQuantity(isNaN(val) ? 1 : Math.max(1, Math.min(500, val)));
+                  }}
+                  className="w-14 h-8 text-center text-xs font-bold bg-white border-0 p-0 shadow-xs"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg hover:bg-white text-slate-700 font-bold"
+                  onClick={() => setPrintQuantity(prev => Math.min(500, prev + 1))}
+                >
+                  +
+                </Button>
+              </div>
+
               <Button 
                 onClick={handlePrint} 
-                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-7 font-black uppercase tracking-tight rounded-xl w-full sm:w-auto"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-11 px-6 font-black uppercase tracking-tight rounded-xl"
               >
                 <Printer className="h-4 w-4" /> 
-                Print Label
+                Print {printQuantity > 1 ? `(${printQuantity})` : 'Label'}
               </Button>
             </div>
           </DialogFooter>
