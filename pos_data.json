@@ -2,20 +2,444 @@
   "app_users": [
     {
       "email": "prabhjeetmehra313@gmail.com",
-      "password": "casher",
+      "password": "prabhjeet",
       "workspace_owner": "prabhjeetmehra313@gmail.com",
       "role": "Admin",
-      "createdAt": "2026-07-19T16:05:21.006Z"
+      "createdAt": "2026-10-08T18:14:49.899Z"
+    },
+    {
+      "email": "prabhjeet",
+      "password": "prabhjeet",
+      "workspace_owner": "prabhjeetmehra313@gmail.com",
+      "role": "Admin",
+      "createdAt": "2026-10-08T18:14:49.898Z"
+    },
+    {
+      "email": "testuser123",
+      "password": "mypassword123",
+      "workspace_owner": "testuser123",
+      "role": "Admin",
+      "createdAt": "2026-10-08T09:51:59.135Z"
+    },
+    {
+      "email": "test_verify@gmail.com",
+      "password": "mypassword123",
+      "workspace_owner": "testuser123",
+      "role": "Admin",
+      "createdAt": "2026-10-08T09:51:59.135Z"
     }
   ],
-  "products": [],
+  "products": [
+    {
+      "product_id": "prod_l96pmnjnf",
+      "id": "prod_l96pmnjnf",
+      "barcode": "703-99-41",
+      "product_name": "as",
+      "name": "as",
+      "brand": "as",
+      "category": "",
+      "purchase_price": 12,
+      "purchasePrice": 12,
+      "selling_price": 12,
+      "sellingPrice": 12,
+      "gst_percent": 12,
+      "gstPercent": 12,
+      "stock_quantity": 12,
+      "stockQuantity": 12,
+      "reorder_level": 12,
+      "reorderLevel": 12,
+      "unit": "pcs",
+      "created_at": "2026-10-12T19:03:05.467Z",
+      "createdAt": "2026-10-12T19:03:05.467Z",
+      "updated_at": "2026-10-12T19:03:05.467Z",
+      "updatedAt": "2026-10-12T19:03:05.467Z",
+      "workspace_owner": "prabhjeetmehra313@gmail.com",
+      "image_url": null,
+      "imageUrl": null
+    }
+  ],
   "sales": [],
   "purchases": [],
   "config": [
     {}
   ],
   "tenant_config": [
-    {}
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791448549794}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791448609748}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791448724128}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791448784143}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791448844094}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791448904093}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791448964096}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449024100}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449084092}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449144105}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449204094}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449264094}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449324097}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449384092}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449444096}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449504095}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449564094}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449624097}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449684102}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449744099}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449804108}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449864104}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449924112}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791449984103}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450044101}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450104105}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450164105}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450224104}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450284102}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450344108}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450404107}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450464107}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450524108}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450584109}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450644111}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450704109}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450764116}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450824111}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450884115}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791450944114}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451004115}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451064110}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451124113}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451184113}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451244114}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451304115}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451364115}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451424115}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451484115}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451544137}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451604118}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451664121}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451724134}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451784125}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451844126}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451904126}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791451964124}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452024125}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452084129}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452144125}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452204132}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452264127}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452324128}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452384129}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452444130}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452504129}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452564134}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452624131}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452684134}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452744132}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452804134}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452864134}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452924132}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791452984137}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791453044143}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791453104138}"
+    },
+    {
+      "key": "testuser123",
+      "workspace_owner": "{\"name\":\"TEST STORE\",\"address\":\"\",\"phone\":\"\",\"paperSize\":\"80mm\",\"allowBelowStock\":true}"
+    },
+    {
+      "key": "testuser123",
+      "workspace_owner": "{\"name\":\"testuser123\",\"email\":\"test_verify@gmail.com\"}"
+    },
+    {
+      "key": "testuser123",
+      "workspace_owner": "\"mypassword123\""
+    },
+    {
+      "key": "testuser123",
+      "workspace_owner": "[\"test_verify@gmail.com\"]"
+    },
+    {
+      "key": "testuser123",
+      "workspace_owner": "{\"test_verify@gmail.com\":\"Admin\"}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791481931872}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791481991833}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791482051826}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791482111831}"
+    },
+    {
+      "key": "default",
+      "workspace_owner": "{\"enabled\":true,\"reportTime\":\"23:59\",\"recipientEmail\":\"\",\"additionalEmails\":\"\",\"attachPdf\":true,\"attachExcel\":true,\"includeBackupStatus\":true,\"sendEvenIfNoSales\":true,\"lastSentDate\":\"2026-10-08\",\"lastSentTimestamp\":1791482171828}"
+    },
+    {
+      "key": "prabhjeetmehra313@gmail.com",
+      "workspace_owner": "{\"name\":\"\",\"address\":\"\",\"phone\":\"\",\"paperSize\":\"80mm\",\"allowBelowStock\":true}"
+    },
+    {
+      "key": "prabhjeetmehra313@gmail.com",
+      "workspace_owner": "{\"name\":\"prabhjeet\",\"email\":\"prabhjeetmehra313@gmail.com\"}"
+    },
+    {
+      "key": "prabhjeetmehra313@gmail.com",
+      "workspace_owner": "\"prabhjeet\""
+    },
+    {
+      "key": "prabhjeetmehra313@gmail.com",
+      "workspace_owner": "[\"prabhjeetmehra313@gmail.com\"]"
+    },
+    {
+      "key": "prabhjeetmehra313@gmail.com",
+      "workspace_owner": "{\"prabhjeetmehra313@gmail.com\":\"Admin\"}"
+    },
+    {
+      "key": "prabhjeetmehra313@gmail.com",
+      "workspace_owner": "{\"email\":\"prabhjeetmehra313@gmail.com\",\"appPassword\":\"\",\"enabled\":true,\"autoSend\":true,\"adminCopyEmail\":\"prabhjeetmehra313@gmail.com\"}"
+    },
+    {
+      "key": "shopDetails",
+      "workspace_owner": "prabhjeetmehra313@gmail.com"
+    },
+    {
+      "key": "userProfile",
+      "workspace_owner": "prabhjeetmehra313@gmail.com"
+    }
   ],
   "access_requests": [],
   "email_logs": []
