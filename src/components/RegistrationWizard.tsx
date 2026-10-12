@@ -375,10 +375,25 @@ export function RegistrationWizard({ isOnboarding, onSuccess, onCancel, initialE
               password: password.trim(),
               name: username.trim() || email.split('@')[0],
               email: email.trim(),
+              workspaceOwner: resolvedWorkspace,
               role: 'Admin',
               avatar: selectedAvatar || ''
             };
-            const filtered = savedAccs.filter((a: any) => a.username.toLowerCase() !== newSavedAcc.username.toLowerCase());
+            const targetU = newSavedAcc.username.toLowerCase();
+            const targetE = newSavedAcc.email.toLowerCase();
+            const targetPrefix = targetE.split('@')[0];
+            const filtered = savedAccs.filter((a: any) => {
+              const u = (a.username || '').toLowerCase().trim();
+              const e = (a.email || '').toLowerCase().trim();
+              const owner = (a.workspaceOwner || '').toLowerCase().trim();
+              if (owner && resolvedWorkspace && owner === resolvedWorkspace.toLowerCase()) return false;
+              if (e && targetE && e === targetE) return false;
+              if (u && targetU && u === targetU) return false;
+              if (u && targetE && u === targetE) return false;
+              if (e && targetU && e === targetU) return false;
+              if (u && targetPrefix && u === targetPrefix) return false;
+              return true;
+            });
             localStorage.setItem('retailpro_saved_accounts', JSON.stringify([...filtered, newSavedAcc]));
           } catch (e) {}
 
