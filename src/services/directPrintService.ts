@@ -1046,7 +1046,9 @@ export const DirectPrintService = {
     barcode: string,
     price: number,
     brand: string,
-    quantity: number
+    quantity: number = 1,
+    labelWidthMm?: number,
+    labelHeightMm?: number
   ): Promise<void> {
     try {
       const bytes: number[] = [];
@@ -1054,6 +1056,15 @@ export const DirectPrintService = {
       const add = (arr: number[]) => bytes.push(...arr);
       const addText = (text: string) => bytes.push(...GLOBAL_TEXT_ENCODER.encode(text));
       const addNewLine = () => bytes.push(0x0A);
+
+      const dims = parseLabelDimensions(undefined, labelWidthMm, labelHeightMm);
+      const wMm = dims.widthMm;
+      const hMm = dims.heightMm;
+
+      // 203 DPI = 8 dots/mm. Barcode height is dynamically scaled to ~38-42% of physical label height
+      const barcodeHeightDots = Math.max(48, Math.min(220, Math.round(hMm * 8 * 0.40)));
+      const cleanBarcode = barcode.trim();
+      const moduleWidth = (wMm >= 75 && cleanBarcode.length <= 14) ? 3 : 2;
 
       for (let q = 0; q < quantity; q++) {
         // Initialize
@@ -1065,7 +1076,8 @@ export const DirectPrintService = {
         if (brand && brand.trim()) {
           add([0x1B, 0x61, 0x01]); // Center
           add([0x1B, 0x45, 0x01]); // Bold ON
-          addText(brand.trim().toUpperCase().slice(0, 24));
+          const maxBrandChars = Math.max(18, Math.min(36, Math.floor(wMm * 0.4)));
+          addText(brand.trim().toUpperCase().slice(0, maxBrandChars));
           addNewLine();
           add([0x1B, 0x45, 0x00]); // Bold OFF
         }
@@ -1074,7 +1086,8 @@ export const DirectPrintService = {
         if (productName && productName.trim()) {
           add([0x1B, 0x61, 0x01]); // Center
           add([0x1B, 0x45, 0x01]); // Bold ON
-          const nameLines = wrapText(productName.trim(), 24);
+          const maxNameChars = Math.max(18, Math.min(36, Math.floor(wMm * 0.4)));
+          const nameLines = wrapText(productName.trim(), maxNameChars);
           addText(nameLines[0]);
           if (nameLines[1]) {
             addNewLine();
@@ -1084,15 +1097,14 @@ export const DirectPrintService = {
           addNewLine();
         }
 
-        // ESC/POS Barcode (Centered & Calibrated for Thermal Sticker Height)
+        // ESC/POS Barcode (Centered & Dynamically Calibrated for Thermal Label Height & Width)
         add([0x1B, 0x61, 0x01]); // Center alignment
-        add([0x1D, 0x68, 64]);   // Clean barcode height (64 dots = ~8mm tall)
-        add([0x1D, 0x77, 2]);    // Module width (2 dots)
+        add([0x1D, 0x68, barcodeHeightDots]); // Dynamically calculated barcode height in dots
+        add([0x1D, 0x77, moduleWidth]);        // Dynamically calculated module width
         add([0x1D, 0x66, 0x01]); // HRI characters font: Font B
         add([0x1D, 0x48, 0x00]); // 0 = Do not print printer internal HRI, we print formatted text below
 
         const displayCode = formatBarcodeDisplay(barcode, price);
-        const cleanBarcode = barcode.trim();
 
         if (cleanBarcode) {
           try {
@@ -1265,16 +1277,31 @@ export const savePrinterConfig = (updated: Partial<PrinterConfig>): PrinterConfi
 
 /**
  * Automatically calculates optimum thermal label dimensions (width x height in mm)
- * based on selected thermal printer specifications or defaults to standard 50mm x 25mm auto-fit label.
+ * based on selected thermal printer specifications or defaults to user-saved configuration.
  * Never defaults to A4/Letter.
  */
 export const detectAutoLabelDimensions = (printerName?: string): { widthMm: number; heightMm: number } => {
+  const config = getPrinterConfig();
+  // 1. If user has custom dimensions saved in config, prioritize them
+  if (config.labelSize === 'custom' && config.labelCustomWidthMm > 0 && config.labelCustomHeightMm > 0) {
+    return { widthMm: config.labelCustomWidthMm, heightMm: config.labelCustomHeightMm };
+  }
+  // 2. If user has a preset size saved in config (e.g., '75x50'), parse it
+  if (config.labelSize && config.labelSize.includes('x') && config.labelSize !== 'custom') {
+    const parts = config.labelSize.split('x');
+    const pw = parseFloat(parts[0]);
+    const ph = parseFloat(parts[1]);
+    if (!isNaN(pw) && !isNaN(ph) && pw > 0 && ph > 0) {
+      return { widthMm: pw, heightMm: ph };
+    }
+  }
+
   if (!printerName) {
-    return { widthMm: 50, heightMm: 30 };
+    return { widthMm: config.labelCustomWidthMm || 50, heightMm: config.labelCustomHeightMm || 30 };
   }
   const lower = printerName.toLowerCase();
   
-  // 4-inch printers (TVS LP45 DLite 4", Zebra ZD, TSC 244 Pro, 100mm, 4inch)
+  // 4-inch printers (TVS LP45 DLite 4", Zebra ZD, TSC 244 Pro, TBS LRP 46D 4-inch mode, 100mm, 4inch)
   if (lower.includes('100mm') || lower.includes('4inch') || lower.includes('4"')) {
     return { widthMm: 100, heightMm: 50 };
   }
@@ -1282,25 +1309,63 @@ export const detectAutoLabelDimensions = (printerName?: string): { widthMm: numb
   if (lower.includes('75mm') || lower.includes('80mm') || lower.includes('3inch') || lower.includes('3"')) {
     return { widthMm: 75, heightMm: 50 };
   }
-  // Standard 2-inch / 50x30mm thermal label printers (TVS LP45 DLite, TVS RP 3230, Zebra, TSC, XPrinter, Rongta, HPRT, etc.)
-  return { widthMm: 50, heightMm: 30 };
+  
+  return { widthMm: config.labelCustomWidthMm || 50, heightMm: config.labelCustomHeightMm || 30 };
 };
 
 /**
  * Parses label dimensions in mm.
- * Auto-detects based on active printer if no explicit size passed.
+ * Fully supports custom dimensions (widthMm and heightMm) as well as preset size strings.
  */
-export const parseLabelDimensions = (labelSize?: string, customW = 50, customH = 30): { widthMm: number; heightMm: number } => {
-  if (labelSize && labelSize.includes('x') && labelSize !== 'custom') {
-    const parts = labelSize.split('x');
-    const w = parseInt(parts[0], 10);
-    const h = parseInt(parts[1], 10);
+export const parseLabelDimensions = (
+  labelSizeOrPrinter?: string,
+  customW?: number,
+  customH?: number
+): { widthMm: number; heightMm: number } => {
+  const config = getPrinterConfig();
+
+  // 1. If a dimension string like '50x30' or '75x50' is passed, parse it first
+  if (labelSizeOrPrinter && labelSizeOrPrinter.includes('x') && !labelSizeOrPrinter.includes(' ')) {
+    const parts = labelSizeOrPrinter.split('x');
+    const w = parseFloat(parts[0]);
+    const h = parseFloat(parts[1]);
     if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
-      return { widthMm: Math.min(w, 118), heightMm: h };
+      return { widthMm: w, heightMm: h };
     }
   }
-  const config = getPrinterConfig();
-  return detectAutoLabelDimensions(config.labelPrinterName || config.billPrinterName);
+
+  // 2. If explicitly marked as 'custom'
+  if (labelSizeOrPrinter === 'custom') {
+    const w = (customW && customW > 0) ? customW : (config.labelCustomWidthMm || 50);
+    const h = (customH && customH > 0) ? customH : (config.labelCustomHeightMm || 30);
+    return { widthMm: Number(w), heightMm: Number(h) };
+  }
+
+  // 3. If explicit custom dimensions are provided and positive
+  if (customW && customH && customW > 0 && customH > 0) {
+    return { widthMm: Number(customW), heightMm: Number(customH) };
+  }
+
+  // 4. Fall back to saved configuration
+  if (config.labelSize) {
+    if (config.labelSize === 'custom') {
+      const w = config.labelCustomWidthMm || 50;
+      const h = config.labelCustomHeightMm || 30;
+      return { widthMm: Number(w), heightMm: Number(h) };
+    }
+    if (config.labelSize.includes('x')) {
+      const parts = config.labelSize.split('x');
+      const w = parseFloat(parts[0]);
+      const h = parseFloat(parts[1]);
+      if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+        return { widthMm: w, heightMm: h };
+      }
+    }
+  }
+
+  // 5. Fall back to printer detection
+  const printer = labelSizeOrPrinter || config.labelPrinterName || config.billPrinterName;
+  return detectAutoLabelDimensions(printer);
 };
 
 /**
@@ -1541,27 +1606,25 @@ export const isThermalPrinterName = (printerName: string): boolean => {
 /**
  * Build standalone barcode label HTML document for thermal label printing.
  * Dynamically calculates dimensions and strictly uses static CSS @page size declarations
- * so Chrome / Edge print preview locks directly to the label dimensions (e.g., 50mm x 25mm)
+ * so Chrome / Edge print preview locks directly to the label dimensions
  * with zero margin and zero extra white space without ever defaulting to A4.
  */
 export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterNameOrSize?: string, customW?: number, customH?: number): string {
-  let w = 50;
-  let h = 30;
+  const parsed = parseLabelDimensions(targetPrinterNameOrSize, customW, customH);
+  const w = parsed.widthMm;
+  const h = parsed.heightMm;
 
-  if (customW && customH && customW > 0 && customH > 0) {
-    w = customW;
-    h = customH;
-  } else if (targetPrinterNameOrSize && targetPrinterNameOrSize.includes('x') && !targetPrinterNameOrSize.includes(' ')) {
-    const parsed = parseLabelDimensions(targetPrinterNameOrSize);
-    w = parsed.widthMm;
-    h = parsed.heightMm;
-  } else {
-    const config = getPrinterConfig();
-    const printerName = targetPrinterNameOrSize || config.labelPrinterName || config.billPrinterName;
-    const detected = detectAutoLabelDimensions(printerName);
-    w = detected.widthMm;
-    h = detected.heightMm;
-  }
+  // Proportional typography based on label width & height (readable on thermal printheads)
+  const brandFontSizePt = Math.max(6.5, Math.min(11, Math.round(w * 0.11 + h * 0.04)));
+  const nameFontSizePt = Math.max(7.5, Math.min(13, Math.round(w * 0.12 + h * 0.05)));
+  const priceFontSizePt = Math.max(8.5, Math.min(16, Math.round(w * 0.14 + h * 0.06)));
+  
+  // Dynamic padding scaled to label size (maintains safety margins for roll wandering)
+  const padVerticalMm = Math.max(0.6, Math.min(2.5, Math.round(h * 0.035 * 10) / 10));
+  const padHorizontalMm = Math.max(0.8, Math.min(3.0, Math.round(w * 0.03 * 10) / 10));
+
+  // Barcode container max height
+  const maxBarcodeHeightMm = Math.max(12, Math.min(120, Math.round(h * 0.58)));
 
   // Wrap raw label-card in print-page if not already wrapped
   let formattedInner = labelsInnerHTML.trim();
@@ -1574,7 +1637,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=${w}mm, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Barcode Labels (${w}mm x ${h}mm)</title>
+  <title>Barcode Label (${w}mm x ${h}mm)</title>
   <style>
     *, *::before, *::after {
       box-sizing: border-box !important;
@@ -1599,7 +1662,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         max-width: ${w}mm !important;
         min-height: ${h}mm !important;
         max-height: ${h}mm !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         overflow: hidden !important;
@@ -1608,7 +1671,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       }
       .container {
         width: ${w}mm !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         display: block !important;
       }
@@ -1617,7 +1680,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         height: ${h}mm !important;
         min-height: ${h}mm !important;
         max-height: ${h}mm !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
@@ -1639,8 +1702,8 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         height: 100% !important;
         max-width: 100% !important;
         max-height: 100% !important;
-        margin: 0 auto !important;
-        padding: 0.8mm 1.2mm !important;
+        margin: 0 !important;
+        padding: ${padVerticalMm}mm ${padHorizontalMm}mm !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
         display: flex !important;
@@ -1679,7 +1742,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       background: #ffffff !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
       border: 1px solid #cbd5e1 !important;
-      border-radius: 2mm !important;
+      border-radius: 1.5mm !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
       display: flex !important;
@@ -1690,7 +1753,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     .label-card {
       width: 100% !important;
       height: 100% !important;
-      padding: 0.8mm 1.2mm !important;
+      padding: ${padVerticalMm}mm ${padHorizontalMm}mm !important;
       box-sizing: border-box !important;
       display: flex !important;
       flex-direction: column !important;
@@ -1701,27 +1764,27 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       background: #ffffff !important;
     }
     .brand {
-      font-size: ${Math.max(5.5, Math.min(7.5, Math.round(w * 0.08)))}pt !important;
+      font-size: ${brandFontSizePt}pt !important;
       font-weight: 900 !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.6px !important;
+      letter-spacing: 0.5px !important;
       color: #000000 !important;
       width: 100% !important;
-      margin: 0 0 0.3mm 0 !important;
+      margin: 0 0 0.2mm 0 !important;
       padding: 0 !important;
       text-align: center !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
-      line-height: 1.1 !important;
+      line-height: 1.15 !important;
     }
     .name {
-      font-size: ${Math.max(6.5, Math.min(8.5, Math.round(w * 0.09)))}pt !important;
+      font-size: ${nameFontSizePt}pt !important;
       font-weight: 800 !important;
       width: 100% !important;
       line-height: 1.15 !important;
       color: #000000 !important;
-      margin: 0 0 0.4mm 0 !important;
+      margin: 0 0 0.3mm 0 !important;
       padding: 0 !important;
       text-align: center !important;
       display: -webkit-box !important;
@@ -1732,6 +1795,7 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     .barcode-container {
       width: 100% !important;
       max-width: 100% !important;
+      flex: 1 1 auto !important;
       display: flex !important;
       flex-direction: column !important;
       justify-content: center !important;
@@ -1744,10 +1808,10 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     .barcode-container svg {
       display: block !important;
       margin: 0 auto !important;
-      width: 90% !important;
-      max-width: 92% !important;
-      height: ${Math.max(12, Math.min(22, Math.round(h * 0.48)))}mm !important;
-      max-height: ${Math.max(12, Math.min(22, Math.round(h * 0.48)))}mm !important;
+      width: 100% !important;
+      max-width: 96% !important;
+      height: auto !important;
+      max-height: ${maxBarcodeHeightMm}mm !important;
       overflow: visible !important;
       shape-rendering: crispEdges !important;
     }
@@ -1761,13 +1825,13 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       font-family: monospace, -apple-system, sans-serif !important;
     }
     .price {
-      font-size: ${Math.max(7.5, Math.min(10.5, Math.round(w * 0.11)))}pt !important;
+      font-size: ${priceFontSizePt}pt !important;
       font-weight: 900 !important;
       color: #000000 !important;
-      margin: 0.4mm 0 0 0 !important;
+      margin: 0.3mm 0 0 0 !important;
       text-align: center !important;
       letter-spacing: 0.2px !important;
-      line-height: 1.1 !important;
+      line-height: 1.15 !important;
       white-space: nowrap !important;
     }
   </style>
@@ -1794,9 +1858,16 @@ export const universalPrintHTML = async (
   const config = getPrinterConfig();
   const targetPrinterName = options?.printerName || (options?.isLabel ? config.labelPrinterName : config.billPrinterName);
 
-  const autoLabelDims = options?.isLabel ? detectAutoLabelDimensions(targetPrinterName) : { widthMm: 80, heightMm: 297 };
-  const effectiveLabelW = options?.labelWidthMm || autoLabelDims.widthMm;
-  const effectiveLabelH = options?.labelHeightMm || autoLabelDims.heightMm;
+  const labelDims = options?.isLabel
+    ? parseLabelDimensions(
+        config.labelSize,
+        options?.labelWidthMm || config.labelCustomWidthMm,
+        options?.labelHeightMm || config.labelCustomHeightMm
+      )
+    : { widthMm: 80, heightMm: 297 };
+
+  const effectiveLabelW = options?.labelWidthMm || labelDims.widthMm;
+  const effectiveLabelH = options?.labelHeightMm || labelDims.heightMm;
 
   // 1. Electron Desktop - Native Direct/Silent Print API
   if (isElectronApp() && (window as any).electronAPI) {
