@@ -331,36 +331,62 @@ export interface SavedPrinterInfo {
 }
 
 /**
- * Format barcode display string with spaces for readability.
- * Example: barcode = "703-99-41" => "703 - 99 - 41"
- * Example: barcode = "7039941" => "703 - 99 - 41"
- * Always maintains fixed format: starting 3 digits - 2 digits - last 2 digits.
- * Selling price is NOT injected into the barcode text.
+ * Format barcode display string for label display/print.
+ * 4-digit random barcode: e.g. "7041" (first 2 digits "70" + last 2 digits "41").
+ * The barcode itself encodes strictly "7041" (fewer lines, bold & clean scan).
+ * On the printed label:
+ * - with price: "70 - 12 - 41" (e.g. 70 - selling price - 41)
+ * - without price: "70 - 41"
+ * Also supports 5-digit barcodes e.g. "70341" => "703 - 12 - 41".
  */
-export function formatBarcodeDisplay(barcode: string, _price?: number): string {
+export function formatBarcodeDisplay(barcode: string, price?: number): string {
   if (!barcode) return '';
   const clean = barcode.trim();
-  
-  // If barcode already has hyphens in format: "703-99-41" or "xxx-yy-zz"
+  const hasValidPrice = price !== undefined && price !== null && !isNaN(Number(price)) && Number(price) > 0;
+  const priceInt = hasValidPrice ? Math.round(Number(price)) : undefined;
+
+  // 1. If 4-digit barcode (e.g. "7041"): 2 digits prefix + 2 digits suffix
+  if (clean.length === 4 && /^\d+$/.test(clean)) {
+    const first2 = clean.substring(0, 2);
+    const last2 = clean.substring(2);
+    if (priceInt !== undefined) {
+      return `${first2} - ${priceInt} - ${last2}`;
+    }
+    return `${first2} - ${last2}`;
+  }
+
+  // 2. If 5-digit barcode (e.g. "70341"): 3 digits prefix + 2 digits suffix
+  if (clean.length === 5 && /^\d+$/.test(clean)) {
+    const first3 = clean.substring(0, 3);
+    const last2 = clean.substring(3);
+    if (priceInt !== undefined) {
+      return `${first3} - ${priceInt} - ${last2}`;
+    }
+    return `${first3} - ${last2}`;
+  }
+
+  // 3. If barcode has hyphens: "70-41" or "703-41" or "70-12-41"
   if (clean.includes('-')) {
     const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
-    if (parts.length === 3) {
-      return `${parts[0]} - ${parts[1]} - ${parts[2]}`;
-    }
     if (parts.length === 2) {
+      if (priceInt !== undefined) {
+        return `${parts[0]} - ${priceInt} - ${parts[1]}`;
+      }
       return `${parts[0]} - ${parts[1]}`;
+    }
+    if (parts.length === 3) {
+      const displayPrice = priceInt !== undefined ? priceInt : parts[1];
+      return `${parts[0]} - ${displayPrice} - ${parts[2]}`;
     }
     return parts.join(' - ');
   }
 
-  // 7-digit number (e.g. "7039941"): 3-digit prefix + 2-digit mid + 2-digit suffix => "703 - 99 - 41"
-  if (clean.length === 7 && /^\d+$/.test(clean)) {
-    return `${clean.substring(0, 3)} - ${clean.substring(3, 5)} - ${clean.substring(5, 7)}`;
-  }
-
-  // 5-digit number (e.g. "70341"): 3-digit prefix + 2-digit suffix => "703 - 41"
-  if (clean.length === 5 && /^\d+$/.test(clean)) {
-    return `${clean.substring(0, 3)} - ${clean.substring(3)}`;
+  // 4. Fallback for other digit lengths
+  if (clean.length > 5 && /^\d+$/.test(clean)) {
+    const mid = Math.ceil(clean.length / 2);
+    if (priceInt !== undefined) {
+      return `${clean.substring(0, mid)} - ${priceInt} - ${clean.substring(mid)}`;
+    }
   }
 
   return clean;
