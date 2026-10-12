@@ -1050,21 +1050,34 @@ export const DirectPrintService = {
         add([0x1B, 0x74, 0x00]); // Codepage PC437
         add([0x1B, 0x61, 0x01]); // Center alignment
 
-        // Product Name (wrapped if needed)
-        add([0x1B, 0x45, 0x01]);
-        const nameLines = wrapText(productName, 24);
-        addText(nameLines[0]);
-        if (nameLines[1]) {
+        // Brand / Shop Name (Prominent Centered Header)
+        if (brand && brand.trim()) {
+          add([0x1B, 0x61, 0x01]); // Center
+          add([0x1B, 0x45, 0x01]); // Bold ON
+          addText(brand.trim().toUpperCase().slice(0, 24));
           addNewLine();
-          addText(nameLines[1]);
+          add([0x1B, 0x45, 0x00]); // Bold OFF
         }
-        add([0x1B, 0x45, 0x00]);
-        addNewLine();
 
-        // ESC/POS Barcode
-        add([0x1B, 0x61, 0x01]); // Ensure center alignment
-        add([0x1D, 0x68, 56]); // Standard clean barcode height (56 dots)
-        add([0x1D, 0x77, 2]);  // Width
+        // Product Name (wrapped cleanly)
+        if (productName && productName.trim()) {
+          add([0x1B, 0x61, 0x01]); // Center
+          add([0x1B, 0x45, 0x01]); // Bold ON
+          const nameLines = wrapText(productName.trim(), 24);
+          addText(nameLines[0]);
+          if (nameLines[1]) {
+            addNewLine();
+            addText(nameLines[1]);
+          }
+          add([0x1B, 0x45, 0x00]); // Bold OFF
+          addNewLine();
+        }
+
+        // ESC/POS Barcode (Centered & Calibrated for Thermal Sticker Height)
+        add([0x1B, 0x61, 0x01]); // Center alignment
+        add([0x1D, 0x68, 48]); // Clean barcode height (48 dots = ~6mm)
+        add([0x1D, 0x77, 2]);  // Module width (2 dots)
+        add([0x1D, 0x66, 0x01]); // HRI characters font: Font B (clean & compact)
         add([0x1D, 0x48, 0x02]); // Position of HRI characters (2 = below barcode)
 
         const cleanBarcode = barcode.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
@@ -1079,15 +1092,14 @@ export const DirectPrintService = {
         // Product Price
         if (price !== undefined && price > 0) {
           add([0x1B, 0x61, 0x01]); // Center alignment
-          add([0x1B, 0x45, 0x01]); // Bold
+          add([0x1B, 0x45, 0x01]); // Bold ON
           addText(`MRP: Rs. ${price.toFixed(2)}`);
-          add([0x1B, 0x45, 0x00]); // Normal
+          add([0x1B, 0x45, 0x00]); // Bold OFF
           addNewLine();
         }
 
-        // Feed & Partial Cut
-        add([0x1B, 0x64, 0x03]);
-        add([0x1D, 0x56, 0x42, 0x00]);
+        // Calibrated feed for die-cut label gap sensor (advances to top of next sticker)
+        add([0x1B, 0x64, 0x01]);
       }
 
       await this.writeRaw(new Uint8Array(bytes));
@@ -1520,6 +1532,12 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
     h = detected.heightMm;
   }
 
+  // Wrap raw label-card in print-page if not already wrapped
+  let formattedInner = labelsInnerHTML.trim();
+  if (!formattedInner.includes('print-page')) {
+    formattedInner = `<div class="print-page">${formattedInner}</div>`;
+  }
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -1544,163 +1562,135 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
         margin: 0 !important;
       }
       html, body {
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
-        min-height: 0 !important;
+        width: ${w}mm !important;
+        height: ${h}mm !important;
+        min-width: ${w}mm !important;
+        max-width: ${w}mm !important;
+        min-height: ${h}mm !important;
+        max-height: ${h}mm !important;
         margin: 0 auto !important;
         padding: 0 !important;
         background: #ffffff !important;
-        overflow: visible !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
+        overflow: hidden !important;
         -webkit-transform: none !important;
         transform: none !important;
       }
       .container {
-        width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
+        width: ${w}mm !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
+        display: block !important;
       }
       .print-page {
-        width: 100% !important;
+        width: ${w}mm !important;
+        height: ${h}mm !important;
         min-height: ${h}mm !important;
+        max-height: ${h}mm !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
         page-break-after: always !important;
         break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
       .print-page:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       .label-card {
-        width: ${w}mm !important;
-        height: ${h}mm !important;
-        min-width: ${w}mm !important;
+        width: 100% !important;
+        height: 100% !important;
         max-width: 100% !important;
-        min-height: ${h}mm !important;
-        max-height: ${h}mm !important;
+        max-height: 100% !important;
         margin: 0 auto !important;
-        padding: 1mm 1.5mm !important;
+        padding: 0.8mm 1.2mm !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        justify-content: center !important;
+        justify-content: space-between !important;
         text-align: center !important;
-        page-break-after: always !important;
-        break-after: page !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-      }
-      .print-page .label-card {
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-      }
-      .label-card:last-child {
-        page-break-after: avoid !important;
-        break-after: avoid !important;
+        background: #ffffff !important;
       }
     }
     html, body {
-      width: 100% !important;
-      min-width: 100% !important;
-      max-width: 100% !important;
-      height: 100% !important;
       margin: 0 auto !important;
-      padding: 0 !important;
-      background: #ffffff !important;
+      padding: 3mm 0 !important;
+      background: #f8fafc !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
       text-align: center !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      overflow: visible !important;
     }
     .container {
-      width: 100% !important;
-      max-width: 100% !important;
-      height: auto !important;
-      margin: 0 auto !important;
-      padding: 0 !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
+      gap: 3mm !important;
+      margin: 0 auto !important;
     }
     .print-page {
-      width: 100% !important;
-      min-height: ${h}mm !important;
-      margin: 0 auto !important;
-      padding: 0 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
-      box-sizing: border-box !important;
-    }
-    .label-card {
       width: ${w}mm !important;
       height: ${h}mm !important;
-      min-width: ${w}mm !important;
-      max-width: 100% !important;
       min-height: ${h}mm !important;
       max-height: ${h}mm !important;
       margin: 0 auto !important;
-      padding: 1mm 1.5mm !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 2mm !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
-      gap: 1mm !important;
-      text-align: center !important;
+    }
+    .label-card {
+      width: 100% !important;
+      height: 100% !important;
+      padding: 0.8mm 1.2mm !important;
       box-sizing: border-box !important;
-      overflow: visible !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      text-align: center !important;
+      overflow: hidden !important;
       background: #ffffff !important;
-      page-break-after: always !important;
-      break-after: page !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
     }
-    .print-page .label-card {
-      page-break-after: avoid !important;
-      break-after: avoid !important;
-    }
-    .label-card:last-child {
-      page-break-after: avoid !important;
-      break-after: avoid !important;
+    .brand {
+      font-size: ${Math.max(5.5, Math.min(7.5, Math.round(w * 0.08)))}pt !important;
+      font-weight: 900 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.6px !important;
+      color: #000000 !important;
+      width: 100% !important;
+      margin: 0 0 0.3mm 0 !important;
+      padding: 0 !important;
+      text-align: center !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      line-height: 1.1 !important;
     }
     .name {
-      font-size: ${Math.max(6, Math.min(9.5, Math.round(w * 0.10)))}pt !important;
+      font-size: ${Math.max(6.5, Math.min(8.5, Math.round(w * 0.09)))}pt !important;
       font-weight: 800 !important;
       width: 100% !important;
       line-height: 1.15 !important;
       color: #000000 !important;
-      margin: 0 auto 0.8mm auto !important;
+      margin: 0 0 0.4mm 0 !important;
       padding: 0 !important;
       text-align: center !important;
       display: -webkit-box !important;
@@ -1712,35 +1702,37 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, targetPrinterName
       width: 100% !important;
       max-width: 100% !important;
       display: flex !important;
+      flex-direction: column !important;
       justify-content: center !important;
       align-items: center !important;
       text-align: center !important;
-      margin: 0 auto !important;
+      margin: auto 0 !important;
       padding: 0 !important;
       overflow: visible !important;
     }
     .barcode-container svg {
-      width: auto !important;
-      max-width: 90% !important;
-      height: auto !important;
-      max-height: ${Math.max(11, Math.round(h * 0.46))}mm !important;
       display: block !important;
       margin: 0 auto !important;
+      max-width: 86% !important;
+      width: auto !important;
+      height: auto !important;
+      max-height: ${Math.max(10, Math.round(h * 0.44))}mm !important;
       overflow: visible !important;
     }
     .price {
       font-size: ${Math.max(7.5, Math.min(10.5, Math.round(w * 0.11)))}pt !important;
       font-weight: 900 !important;
       color: #000000 !important;
-      margin: 0.6mm auto 0 auto !important;
+      margin: 0.4mm 0 0 0 !important;
       text-align: center !important;
       letter-spacing: 0.2px !important;
-      line-height: 1 !important;
+      line-height: 1.1 !important;
+      white-space: nowrap !important;
     }
   </style>
 </head>
 <body>
-  <div class="container">${labelsInnerHTML}</div>
+  <div class="container">${formattedInner}</div>
 </body>
 </html>`;
 }
@@ -1876,19 +1868,27 @@ export const openInNewPrintWindow = (htmlContent: string) => {
   if (isAndroidNative()) return;
   const blob = new Blob([htmlContent], { type: 'text/html' });
   const blobUrl = URL.createObjectURL(blob);
-  const printWindow = window.open(blobUrl, '_blank');
-  
-  if (!printWindow) {
-    window.location.href = blobUrl;
-    return;
-  }
+  try {
+    const printWindow = window.open(blobUrl, '_blank');
+    if (!printWindow) {
+      universalPrintHTML(htmlContent, { isLabel: true });
+      return;
+    }
 
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 500);
-  };
+    printWindow.onload = () => {
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch (e) {
+          console.warn('Auto print trigger error:', e);
+        }
+      }, 500);
+    };
+  } catch (err) {
+    console.warn('Open print window error:', err);
+    universalPrintHTML(htmlContent, { isLabel: true });
+  }
 };
 
 export const downloadPrintableHTML = (htmlContent: string, fileName: string = 'barcode-labels.html') => {
