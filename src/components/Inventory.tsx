@@ -444,7 +444,7 @@ export default function Inventory() {
   const handleDownloadHTML = async () => {
     const fullHTML = generateBarcodeFullHTML();
     if (!fullHTML) return;
-    downloadPrintableHTML(fullHTML, `${selectedBarcode || 'barcode'}-labels-${labelSize}.html`);
+    downloadPrintableHTML(fullHTML, `${selectedBarcode || 'barcode'}-labels.html`);
     toast.success("Downloaded Barcode HTML! Open in RawBT or Print App to print.");
   };
 
@@ -927,9 +927,6 @@ export default function Inventory() {
             {/* Prominently Centered Physical Label Preview */}
             <div className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-slate-200/90 shadow-sm relative group mx-auto w-full max-w-md">
               <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                <Badge variant="outline" className="bg-slate-50 text-[9px] font-black uppercase text-slate-500 border-slate-200">
-                  {labelSize} mm
-                </Badge>
                 <Badge variant="outline" className="bg-blue-50 text-[9px] font-black uppercase text-blue-600 border-blue-200">
                   Live Preview
                 </Badge>
@@ -1015,29 +1012,8 @@ export default function Inventory() {
               </p>
             </div>
 
-            {/* Label Controls & Calibration Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto w-full">
-              {/* Sticker Dimensions Selector */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-2">
-                <Label className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                  <span>📐 Label Dimensions</span>
-                </Label>
-                <Select value={labelSize} onValueChange={setLabelSize}>
-                  <SelectTrigger className="h-10 text-xs font-bold border-slate-200 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="50x30">50mm × 30mm (Standard Retail - Most Popular)</SelectItem>
-                    <SelectItem value="50x25">50mm × 25mm (Compact 2-inch Sticker)</SelectItem>
-                    <SelectItem value="40x25">40mm × 25mm (Small Tag)</SelectItem>
-                    <SelectItem value="38x25">38mm × 25mm (Jewelry / Mini Tag)</SelectItem>
-                    <SelectItem value="75x50">75mm × 50mm (3-inch Box Label)</SelectItem>
-                    <SelectItem value="100x50">100mm × 50mm (4-inch Shipping Label)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Store Title Customizer */}
+            {/* Store Title Customizer */}
+            <div className="max-w-md mx-auto w-full">
               <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-black uppercase tracking-wider text-slate-600">
