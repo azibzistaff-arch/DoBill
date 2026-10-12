@@ -431,9 +431,8 @@ export const PrinterPickerModal: React.FC<PrinterPickerModalProps> = ({ open, on
                       <span>1. Software Layout Setup</span>
                     </p>
                     <ul className="text-slate-300 space-y-0.5 list-disc list-inside text-[10.5px]">
-                      <li><strong>Page Size:</strong> Manual / Custom</li>
-                      <li><strong>Width / Height:</strong> 50mm x 25mm</li>
-                      <li><strong>Label Type:</strong> Die-Cut / Labels with Gaps</li>
+                      <li><strong>Page Size:</strong> Set in Printer Settings / Driver</li>
+                      <li><strong>Label Type:</strong> Thermal Roll / Die-Cut Sticker</li>
                     </ul>
                   </div>
 
