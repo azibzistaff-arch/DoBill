@@ -47,15 +47,27 @@ import {
   detectAutoLabelDimensions,
   parseLabelDimensions,
   openInNewPrintWindow,
-  downloadPrintableHTML
+  downloadPrintableHTML,
+  formatBarcodeDisplay
 } from '@/services/directPrintService';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { toast } from 'sonner';
 // @ts-ignore - Import directly to bypass package entry resolution failure on some systems/Vite versions
 import Barcode from 'react-barcode/lib/react-barcode.js';
+// @ts-ignore
+import JsBarcode from 'jsbarcode';
 import { getCurrentUserRole, defineAbilityFor } from '@/services/abilityService';
 
-const generateRandomBarcode5 = (existingProducts?: { id?: string; barcode?: string }[], currentProductId?: string): string => {
+/**
+ * Generates a coded retail barcode in the format:
+ * [3-digit random] - [Price] - [2-digit random]
+ * e.g. "524-250-18"
+ */
+const generateCodedBarcode = (
+  price?: number,
+  existingProducts?: { id?: string; barcode?: string }[],
+  currentProductId?: string
+): string => {
   const existingSet = new Set<string>();
   if (existingProducts) {
     for (const p of existingProducts) {
@@ -65,34 +77,33 @@ const generateRandomBarcode5 = (existingProducts?: { id?: string; barcode?: stri
     }
   }
 
-  // Attempt to generate a completely unique 5-digit number (10000 - 99999)
+  const pInt = (price !== undefined && price !== null && !isNaN(Number(price)) && Number(price) > 0)
+    ? Math.round(Number(price))
+    : Math.floor(100 + Math.random() * 900);
+
+  // Format: [3-digit random] - [price] - [2-digit random]
   for (let attempt = 0; attempt < 5000; attempt++) {
-    const candidate = String(Math.floor(10000 + Math.random() * 90000));
+    const r1 = Math.floor(100 + Math.random() * 900);
+    const r2 = Math.floor(10 + Math.random() * 90);
+    const candidate = `${r1}-${pInt}-${r2}`;
     if (!existingSet.has(candidate)) {
       return candidate;
     }
   }
 
-  // Linear scan fallback in case of high density
-  for (let n = 10000; n <= 99999; n++) {
-    const candidate = String(n);
-    if (!existingSet.has(candidate)) {
-      return candidate;
-    }
-  }
-
-  // Ultimate fallback if all 90,000 5-digit numbers are exhausted
-  return String(Math.floor(100000 + Math.random() * 900000));
+  const r1 = Math.floor(100 + Math.random() * 900);
+  const r2 = Math.floor(10 + Math.random() * 90);
+  return `${r1}-${pInt}-${r2}`;
 };
 
 const getBarcodeBarWidth = (code?: string | null) => {
-  if (!code) return 1.8;
+  if (!code) return 1.5;
   const len = code.length;
   if (len > 18) return 1.0;
   if (len > 14) return 1.15;
   if (len > 10) return 1.35;
-  if (len <= 5) return 1.85; // Clean, standard, slightly bigger & bold barcode for 50x30mm
-  return 1.6;
+  if (len <= 7) return 1.7;
+  return 1.45;
 };
 
 export default function Inventory() {
@@ -271,24 +282,81 @@ export default function Inventory() {
     }
   };
 
-  const getCleanBarcodeSVG = (barcodeValue: string, labelHeightMm: number = 30) => {
+  const getCleanBarcodeSVG = (barcodeValue: string, price?: number, labelHeightMm: number = 30) => {
+    const displayTxt = formatBarcodeDisplay(barcodeValue, price);
+    const targetH = Math.max(12, Math.min(22, Math.round(labelHeightMm * 0.48)));
+
+    // 1. Pristine native SVG generation via JsBarcode
+    try {
+      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+        const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        // @ts-ignore
+        const JsBarcodeFn = typeof JsBarcode === 'function' ? JsBarcode : (window as any).JsBarcode;
+        if (JsBarcodeFn) {
+          JsBarcodeFn(svgElement, barcodeValue, {
+            format: 'CODE128',
+            text: displayTxt,
+            width: getBarcodeBarWidth(barcodeValue),
+            height: 44,
+            fontSize: 11,
+            fontOptions: 'bold',
+            displayValue: true,
+            margin: 4,
+            background: '#ffffff',
+            lineColor: '#000000'
+          });
+
+          svgElement.setAttribute('width', '90%');
+          svgElement.setAttribute('height', `${targetH}mm`);
+          svgElement.setAttribute('style', `display: block !important; margin: 0 auto !important; width: 90% !important; max-width: 92% !important; height: ${targetH}mm !important; max-height: ${targetH}mm !important; overflow: visible !important;`);
+          svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+          
+          svgElement.querySelectorAll('rect').forEach((r: any) => {
+            r.setAttribute('fill', '#000000');
+            r.setAttribute('shape-rendering', 'crispEdges');
+          });
+          svgElement.querySelectorAll('text').forEach((t: any) => {
+            t.setAttribute('fill', '#000000');
+            t.setAttribute('font-weight', 'bold');
+          });
+
+          return svgElement.outerHTML;
+        }
+      }
+    } catch (e) {
+      console.warn('Direct JsBarcode generation fallback:', e);
+    }
+
+    // 2. Clone from live preview element if already mounted
     const previewArea = document.getElementById('printable-label-area');
     const rawSvg = previewArea ? previewArea.querySelector('svg') : null;
     if (rawSvg) {
-      const clone = rawSvg.cloneNode(true) as SVGElement;
-      const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 160;
-      const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 48;
-      
-      clone.setAttribute('viewBox', `0 0 ${origW} ${origH}`);
-      clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-      
-      const maxH = Math.max(8, Math.min(15, Math.round(labelHeightMm * 0.40)));
-      clone.setAttribute('width', '100%');
-      clone.setAttribute('height', `${maxH}mm`);
-      clone.setAttribute('style', `display: block !important; margin: 0 auto !important; max-width: 86% !important; height: ${maxH}mm !important; max-height: ${maxH}mm !important; overflow: visible !important;`);
-      return clone.outerHTML;
+      try {
+        const clone = rawSvg.cloneNode(true) as SVGElement;
+        const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 180;
+        const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 54;
+        
+        clone.setAttribute('viewBox', `0 0 ${origW} ${origH}`);
+        clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        clone.setAttribute('width', '90%');
+        clone.setAttribute('height', `${targetH}mm`);
+        clone.setAttribute('style', `display: block !important; margin: 0 auto !important; width: 90% !important; max-width: 92% !important; height: ${targetH}mm !important; max-height: ${targetH}mm !important; overflow: visible !important;`);
+        
+        clone.querySelectorAll('rect').forEach((r: any) => {
+          r.setAttribute('fill', '#000000');
+          r.setAttribute('shape-rendering', 'crispEdges');
+        });
+        clone.querySelectorAll('text').forEach((t: any) => {
+          t.setAttribute('fill', '#000000');
+          t.setAttribute('font-weight', 'bold');
+        });
+        return clone.outerHTML;
+      } catch (err) {
+        console.warn('SVG cloning error:', err);
+      }
     }
-    return `<div style="text-align: center; font-family: monospace; font-weight: 800; font-size: 10.5pt; color: #000; letter-spacing: 1.5px; margin: 1mm auto;">*${barcodeValue}*</div>`;
+
+    return `<div style="text-align: center; font-family: monospace; font-weight: 900; font-size: 11pt; color: #000; letter-spacing: 1.5px; margin: 2mm auto;">${displayTxt}</div>`;
   };
 
   const generateBarcodeFullHTML = () => {
@@ -299,7 +367,7 @@ export default function Inventory() {
     const brand = customBrandText.trim() || shopName || product?.brand || 'DO BILL';
 
     const parsedDims = parseLabelDimensions(labelSize);
-    const svgHTML = getCleanBarcodeSVG(selectedBarcode || '', parsedDims.heightMm);
+    const svgHTML = getCleanBarcodeSVG(selectedBarcode || '', price, parsedDims.heightMm);
 
     const cards = Array(totalLabels).fill(0).map(() => `
       <div class="print-page">
@@ -415,7 +483,7 @@ export default function Inventory() {
               <Button 
                 onClick={() => setEditingProduct({ 
                   name: '',
-                  barcode: generateRandomBarcode5(products),
+                  barcode: generateCodedBarcode(undefined, products),
                   brand: '',
                   category: '',
                   purchasePrice: undefined,
@@ -454,21 +522,21 @@ export default function Inventory() {
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                       Barcode (Machine Scan)
-                      <Badge variant="outline" className="text-[8px] h-4 bg-emerald-50 text-emerald-600 border-emerald-100 uppercase tracking-widest">5-Digit Barcode</Badge>
+                      <Badge variant="outline" className="text-[8px] h-4 bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-widest">Rnd - Price - Rnd</Badge>
                     </Label>
                     <button
                       type="button"
                       onClick={() => setEditingProduct({
                         ...editingProduct!,
-                        barcode: generateRandomBarcode5(products, editingProduct?.id)
+                        barcode: generateCodedBarcode(editingProduct?.sellingPrice, products, editingProduct?.id)
                       })}
                       className="text-[10px] font-black text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 cursor-pointer transition-all"
                     >
-                      ⚡ Auto 5-Digit
+                      ⚡ Auto Generate (Rnd - Price - Rnd)
                     </button>
                   </div>
                   <Input 
-                    placeholder="Scan or enter barcode (e.g. 54321)..."
+                    placeholder="Scan or enter barcode (e.g. 524-250-18)..."
                     maxLength={20}
                     className="h-12 text-base font-mono font-bold border-slate-200"
                     value={editingProduct?.barcode ?? ''} 
@@ -656,8 +724,8 @@ export default function Inventory() {
                   <div className="text-xs text-slate-400 mb-1.5 cursor-help" title={p.brand || ''}>{truncate20(p.brand || '', 20)}</div>
                   {p.barcode ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/50">
-                        {p.barcode}
+                      <span className="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/50" title={p.barcode}>
+                        {formatBarcodeDisplay(p.barcode, p.sellingPrice)}
                       </span>
                       <Button 
                         variant="ghost" 
@@ -674,16 +742,16 @@ export default function Inventory() {
                       size="xs" 
                       className="h-5 px-1.5 text-[8px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter border border-blue-200"
                       onClick={async () => {
-                        const newBarcode = generateRandomBarcode5(products, p.id);
+                        const newBarcode = generateCodedBarcode(p.sellingPrice, products, p.id);
                         const updated = { ...p, barcode: newBarcode };
                         await DataService.saveProduct(updated);
                         await refreshProducts();
                         setSelectedBarcode(newBarcode);
                         setIsBarcodeViewOpen(true);
-                        toast.success(`Generated 5-digit barcode: ${newBarcode}`);
+                        toast.success(`Generated Coded Barcode: ${formatBarcodeDisplay(newBarcode, p.sellingPrice)}`);
                       }}
                     >
-                      + 5-Digit Barcode
+                      + Generate Barcode
                     </Button>
                   )}
                 </TableCell>
@@ -761,7 +829,9 @@ export default function Inventory() {
               <div className="flex items-center gap-2 mt-2">
                 {p.barcode ? (
                   <>
-                    <span className="font-mono text-[10px] font-bold text-slate-500">{p.barcode}</span>
+                    <span className="font-mono text-[9.5px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title={p.barcode}>
+                      {formatBarcodeDisplay(p.barcode, p.sellingPrice)}
+                    </span>
                     <Button 
                       variant="ghost" 
                       size="xs" 
@@ -777,16 +847,16 @@ export default function Inventory() {
                     size="xs" 
                     className="h-5 px-1.5 text-[8.5px] text-blue-600 bg-blue-50 hover:bg-blue-100 uppercase font-bold tracking-tighter rounded border border-blue-200"
                     onClick={async () => {
-                      const newBarcode = generateRandomBarcode5(products, p.id);
+                      const newBarcode = generateCodedBarcode(p.sellingPrice, products, p.id);
                       const updated = { ...p, barcode: newBarcode };
                       await DataService.saveProduct(updated);
                       await refreshProducts();
                       setSelectedBarcode(newBarcode);
                       setIsBarcodeViewOpen(true);
-                      toast.success(`Generated 5-digit barcode: ${newBarcode}`);
+                      toast.success(`Generated Coded Barcode: ${formatBarcodeDisplay(newBarcode, p.sellingPrice)}`);
                     }}
                   >
-                    + 5-Digit Barcode
+                    + Generate Barcode
                   </Button>
                 )}
               </div>
@@ -898,9 +968,11 @@ export default function Inventory() {
                       <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-0.5">
                         <Barcode 
                           value={selectedBarcode} 
+                          text={formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
                           width={getBarcodeBarWidth(selectedBarcode)}
-                          height={34} 
-                          fontSize={10.5}
+                          height={40} 
+                          fontSize={11}
+                          fontOptions="bold"
                           background="transparent"
                           margin={3}
                         />
@@ -915,23 +987,23 @@ export default function Inventory() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">
-                        {selectedBarcode}
+                      <span className="font-mono text-xs font-black text-slate-800 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200" title="Coded Barcode Display">
+                        {formatBarcodeDisplay(selectedBarcode, currProd?.sellingPrice)}
                       </span>
                       {currProd && (
                         <button
                           type="button"
                           onClick={async () => {
-                            const newCode = generateRandomBarcode5(products, currProd.id);
+                            const newCode = generateCodedBarcode(currProd.sellingPrice, products, currProd.id);
                             const updated = { ...currProd, barcode: newCode };
                             await DataService.saveProduct(updated);
                             await refreshProducts();
                             setSelectedBarcode(newCode);
-                            toast.success(`Generated new 5-digit barcode: ${newCode}`);
+                            toast.success(`Generated Coded Barcode: ${formatBarcodeDisplay(newCode, currProd.sellingPrice)}`);
                           }}
-                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
+                          className="text-[10px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
                         >
-                          ⚡ Random 5-Digit Barcode
+                          ⚡ Regenerate (Rnd - Price - Rnd)
                         </button>
                       )}
                     </div>
