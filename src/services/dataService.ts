@@ -327,10 +327,12 @@ const OnlineDataService = {
     try {
       const products = await DataService.getProducts();
       const searchCode = code.trim().toLowerCase();
-      return products.find(p => 
-        p.barcode.trim().toLowerCase() === searchCode || 
-        p.id.toLowerCase() === searchCode
-      );
+      const cleanSearchCode = searchCode.replace(/[^a-z0-9]/gi, '');
+      return products.find(p => {
+        const pCode = (p.barcode || '').trim().toLowerCase();
+        const pClean = pCode.replace(/[^a-z0-9]/gi, '');
+        return pCode === searchCode || (cleanSearchCode !== '' && pClean === cleanSearchCode) || p.id.toLowerCase() === searchCode;
+      });
     } catch (e) {
       console.error("Get product by barcode error:", e);
       return undefined;
@@ -341,10 +343,12 @@ const OnlineDataService = {
     try {
       const products = await DataService.getProducts();
       const searchCode = code.trim().toLowerCase();
-      return products.filter(p => 
-        p.barcode.trim().toLowerCase() === searchCode || 
-        p.id.toLowerCase() === searchCode
-      );
+      const cleanSearchCode = searchCode.replace(/[^a-z0-9]/gi, '');
+      return products.filter(p => {
+        const pCode = (p.barcode || '').trim().toLowerCase();
+        const pClean = pCode.replace(/[^a-z0-9]/gi, '');
+        return pCode === searchCode || (cleanSearchCode !== '' && pClean === cleanSearchCode) || p.id.toLowerCase() === searchCode;
+      });
     } catch (e) {
       console.error("Get products list by barcode error:", e);
       return [];
@@ -1588,10 +1592,12 @@ export const DataService = {
     if (isLocalFallback) {
       const products = await DataService.getProducts();
       const searchCode = code.trim().toLowerCase();
-      return products.find(p => 
-        (p.barcode && p.barcode.trim().toLowerCase() === searchCode) || 
-        p.id.toLowerCase() === searchCode
-      );
+      const cleanSearchCode = searchCode.replace(/[^a-z0-9]/gi, '');
+      return products.find(p => {
+        const pCode = (p.barcode || '').trim().toLowerCase();
+        const pClean = pCode.replace(/[^a-z0-9]/gi, '');
+        return pCode === searchCode || (cleanSearchCode !== '' && pClean === cleanSearchCode) || p.id.toLowerCase() === searchCode;
+      });
     }
     return OnlineDataService.getProductByBarcode(code);
   },
@@ -1601,10 +1607,12 @@ export const DataService = {
     if (isLocalFallback) {
       const products = await DataService.getProducts();
       const searchCode = code.trim().toLowerCase();
-      return products.filter(p => 
-        (p.barcode && p.barcode.trim().toLowerCase() === searchCode) || 
-        p.id.toLowerCase() === searchCode
-      );
+      const cleanSearchCode = searchCode.replace(/[^a-z0-9]/gi, '');
+      return products.filter(p => {
+        const pCode = (p.barcode || '').trim().toLowerCase();
+        const pClean = pCode.replace(/[^a-z0-9]/gi, '');
+        return pCode === searchCode || (cleanSearchCode !== '' && pClean === cleanSearchCode) || p.id.toLowerCase() === searchCode;
+      });
     }
     return OnlineDataService.getProductsByBarcode(code);
   },
