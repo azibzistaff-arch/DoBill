@@ -332,26 +332,37 @@ export interface SavedPrinterInfo {
 
 /**
  * Format barcode display string with secret/coded price in the center.
- * Example: barcode = 24312, price = 200 => "243 - 200 - 12"
- * Example: barcode = "524-250-18" => "524 - 250 - 18"
+ * Example: barcode = "70341" (5-digit random), price = 270 => "703 - 270 - 41"
+ * Example: barcode = "703-270-41", price = 270 => "703 - 270 - 41"
+ * Total random digits = 5 (3-digit random prefix + 2-digit random suffix wrapping the price)
  */
 export function formatBarcodeDisplay(barcode: string, price?: number): string {
   if (!barcode) return '';
   const clean = barcode.trim();
+  const hasValidPrice = price !== undefined && price !== null && !isNaN(price) && Number(price) > 0;
+  const priceInt = hasValidPrice ? Math.round(Number(price)) : undefined;
   
   // If barcode already has hyphens in format: "xxx-price-yy" or "xxx - price - yy"
   if (clean.includes('-')) {
     const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
     if (parts.length === 3) {
-      return `${parts[0]} - ${parts[1]} - ${parts[2]}`;
+      const displayPrice = priceInt !== undefined ? priceInt : parts[1];
+      return `${parts[0]} - ${displayPrice} - ${parts[2]}`;
+    }
+    if (parts.length === 2) {
+      if (priceInt !== undefined) {
+        return `${parts[0]} - ${priceInt} - ${parts[1]}`;
+      }
+      return `${parts[0]} - ${parts[1]}`;
     }
     return parts.join(' - ');
   }
 
-  if (price === undefined || price === null || isNaN(price)) {
+  if (priceInt === undefined) {
     return clean;
   }
-  const priceInt = Math.round(price);
+
+  // 5-digit random number: 3-digit random prefix + price + 2-digit random suffix
   if (clean.length === 5) {
     return `${clean.substring(0, 3)} - ${priceInt} - ${clean.substring(3)}`;
   }
