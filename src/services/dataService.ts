@@ -138,8 +138,7 @@ const getBackendUrl = (url: string): string => {
     const isNativeCapacitorApp = checkIsNativeCapacitor() || 
       window.location.protocol === 'file:' || 
       window.location.protocol === 'capacitor:' || 
-      origin === 'https://localhost' || 
-      origin === 'http://localhost';
+      ((origin === 'https://localhost' || origin === 'http://localhost') && Boolean((window as any).Capacitor));
 
     // In Android APK / Capacitor / Android Studio Emulator, origin is "https://localhost" or "http://localhost".
     // Point relative API requests to live production domain.
@@ -150,7 +149,7 @@ const getBackendUrl = (url: string): string => {
       return `${baseUrl.replace(/\/$/, '')}${path}`;
     }
 
-    // Standard web browser context (desktop or mobile web browser on dobill.in or dobill-1kyk.onrender.com)
+    // Standard web browser context (desktop or mobile web browser on dobill.in, localhost, or VPS domain)
     // Always use current origin + relative path!
     const path = url.startsWith('/') ? url : `/${url}`;
     return `${origin}${path}`;
@@ -1214,7 +1213,7 @@ const OnlineDataService = {
     }
   },
 
-  login: async (email: string, password: string): Promise<{ success: boolean; email?: string; workspaceOwner?: string; role?: string; message: string }> => {
+  login: async (email: string, password: string): Promise<{ success: boolean; email?: string; username?: string; name?: string; workspaceOwner?: string; role?: string; message: string }> => {
     try {
       const res = await customFetch('/api/auth/login', {
         method: 'POST',
@@ -1228,6 +1227,8 @@ const OnlineDataService = {
       return {
         success: true,
         email: data.email,
+        username: data.username,
+        name: data.name,
         workspaceOwner: data.workspaceOwner,
         role: data.role,
         message: data.message
@@ -2076,15 +2077,27 @@ export const DataService = {
   },
 
   sendGmailTest: async (email: string, appPassword: string, recipient?: string): Promise<{ success: boolean; message: string }> => {
-    return { success: true, message: "Success! (Offline/Local SMTP simulation completed)" };
+    await ensureBackendDetection();
+    if (isLocalFallback) {
+      return { success: true, message: "Success! (Offline/Local SMTP simulation completed)" };
+    }
+    return OnlineDataService.sendGmailTest(email, appPassword, recipient);
   },
 
   sendGmailInvoice: async (sale: Sale, customerEmail?: string, recipientEmail?: string): Promise<{ success: boolean; message: string }> => {
-    return { success: true, message: "Receipt sent over draft offline loop." };
+    await ensureBackendDetection();
+    if (isLocalFallback) {
+      return { success: true, message: "Receipt sent over draft offline loop." };
+    }
+    return OnlineDataService.sendGmailInvoice(sale, customerEmail, recipientEmail);
   },
 
   sendGmailReport: async (startDate?: string, endDate?: string, recipientEmail?: string): Promise<{ success: boolean; message: string }> => {
-    return { success: true, message: "Report generated offline and dispatched." };
+    await ensureBackendDetection();
+    if (isLocalFallback) {
+      return { success: true, message: "Report generated offline and dispatched." };
+    }
+    return OnlineDataService.sendGmailReport(startDate, endDate, recipientEmail);
   },
 
   getAutoReportSettings: async () => {
