@@ -310,8 +310,8 @@ export default function Inventory() {
           JsBarcodeFn(svgElement, barcodeValue, {
             format: 'CODE128',
             displayValue: false, // Pure barcode bars only, no text under barcode
-            width: 2.0, // Clean 2px bar thickness
-            height: 25, // Slim 25px height (not tall or bulky)
+            width: 2.2, // Clean 2.2px bar thickness
+            height: 32, // Balanced 32px height
             margin: 1,
             background: '', // Crucial: empty background avoids solid blocking rectangle
             lineColor: '#000000'
@@ -319,14 +319,14 @@ export default function Inventory() {
 
           // Read the natural width and height produced by JsBarcode
           const naturalW = parseFloat(svgElement.getAttribute('width') || '0') || 180;
-          const naturalH = parseFloat(svgElement.getAttribute('height') || '0') || 27;
+          const naturalH = parseFloat(svgElement.getAttribute('height') || '0') || 34;
 
           // Set viewBox so the SVG scales cleanly to fill the label width
           svgElement.setAttribute('viewBox', `0 0 ${naturalW} ${naturalH}`);
           svgElement.setAttribute('width', 'auto');
-          svgElement.setAttribute('height', '25px');
+          svgElement.setAttribute('height', '32px');
           svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-          svgElement.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: auto !important; max-width: 80% !important; height: 25px !important; max-height: 28px !important; shape-rendering: crispEdges !important;');
+          svgElement.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: auto !important; max-width: 88% !important; height: 32px !important; max-height: 35px !important; shape-rendering: crispEdges !important;');
           
           // Ensure all barcode bars inside groups have pure black fill
           svgElement.querySelectorAll('g rect').forEach((r: any) => {
@@ -354,13 +354,13 @@ export default function Inventory() {
       try {
         const clone = rawSvg.cloneNode(true) as SVGElement;
         const origW = parseFloat(clone.getAttribute('width') || '0') || rawSvg.getBoundingClientRect().width || 180;
-        const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 28;
+        const origH = parseFloat(clone.getAttribute('height') || '0') || rawSvg.getBoundingClientRect().height || 34;
         
         clone.setAttribute('viewBox', `0 0 ${origW} ${origH}`);
         clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         clone.setAttribute('width', 'auto');
-        clone.setAttribute('height', '25px');
-        clone.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: auto !important; max-width: 80% !important; height: 25px !important; max-height: 28px !important; shape-rendering: crispEdges !important;');
+        clone.setAttribute('height', '32px');
+        clone.setAttribute('style', 'display: block !important; margin: 0 auto !important; width: auto !important; max-width: 88% !important; height: 32px !important; max-height: 35px !important; shape-rendering: crispEdges !important;');
         
         clone.querySelectorAll('g rect').forEach((r: any) => {
           r.setAttribute('fill', '#000000');
@@ -985,8 +985,8 @@ export default function Inventory() {
                           <Barcode 
                             value={selectedBarcode} 
                             displayValue={false}
-                            width={1.9}
-                            height={24} 
+                            width={2.2}
+                            height={32} 
                             background="transparent"
                             margin={1}
                           />
@@ -994,9 +994,9 @@ export default function Inventory() {
                       </div>
 
                       {/* Side Brand: managed by dobill.in */}
-                      <div className="side-brand flex items-center justify-center border-l border-slate-200/90 pl-2 shrink-0 select-none">
+                      <div className="side-brand flex items-center justify-center border-l border-slate-200/90 pl-2.5 pr-0.5 shrink-0 select-none">
                         <span 
-                          className="text-[8px] font-black tracking-widest text-slate-500 uppercase whitespace-nowrap block"
+                          className="text-[9px] font-black tracking-wider text-slate-600 uppercase whitespace-nowrap block"
                           style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
                         >
                           managed by dobill.in
