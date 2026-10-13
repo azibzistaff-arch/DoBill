@@ -1092,8 +1092,8 @@ export const DirectPrintService = {
       const wMm = dims.widthMm;
       const hMm = dims.heightMm;
 
-      // 203 DPI = 8 dots/mm. Barcode height is slim & proportionate (~18% of label height, ~22-35 dots)
-      const barcodeHeightDots = Math.max(22, Math.min(48, Math.round(hMm * 8 * 0.18)));
+      // 203 DPI = 8 dots/mm. Barcode height is balanced & scannable (~23% of label height, ~28-48 dots)
+      const barcodeHeightDots = Math.max(28, Math.min(58, Math.round(hMm * 8 * 0.23)));
       const cleanBarcode = barcode.trim();
       const moduleWidth = (wMm >= 75 && cleanBarcode.length <= 14) ? 3 : 2;
 
@@ -1723,11 +1723,11 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       flex-shrink: 0 !important;
     }
     .side-brand span {
-      font-size: 5pt !important;
+      font-size: 6pt !important;
       font-weight: 800 !important;
       text-transform: uppercase !important;
       letter-spacing: 0.5px !important;
-      color: #555555 !important;
+      color: #333333 !important;
       writing-mode: vertical-rl !important;
       transform: rotate(180deg) !important;
       display: block !important;
@@ -1773,9 +1773,9 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       display: block !important;
       margin: 0 auto !important;
       width: auto !important;
-      max-width: 80% !important;
-      height: 25px !important;
-      max-height: 28px !important;
+      max-width: 88% !important;
+      height: 32px !important;
+      max-height: 35px !important;
       shape-rendering: crispEdges !important;
     }
     .barcode-container svg g rect {
