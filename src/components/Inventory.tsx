@@ -393,10 +393,8 @@ export default function Inventory() {
     const cards = Array(totalLabels).fill(0).map(() => `
       <div class="print-page">
         <div class="label-card">
-          <div class="label-main">
-            ${name ? `<div class="name">${name}</div>` : ''}
-            <div class="barcode-container">${svgHTML}</div>
-          </div>
+          ${name ? `<div class="name">${name}</div>` : ''}
+          <div class="barcode-container">${svgHTML}</div>
           <div class="side-brand">
             <span>managed by dobill.in</span>
           </div>
@@ -968,37 +966,31 @@ export default function Inventory() {
                     {/* Centered Sticker Preview */}
                     <div 
                       id="printable-label-area" 
-                      className="bg-white px-3.5 py-3 rounded-xl shadow-md border border-slate-300 max-w-[320px] w-full flex items-center justify-between text-center my-2 transition-all duration-300 min-h-[95px]"
+                      className="bg-white px-4 py-3 rounded-xl shadow-xs border border-slate-300 max-w-[320px] w-full flex flex-col items-center justify-center text-center my-2 transition-all duration-300 min-h-[105px]"
                     >
-                      {/* Left/Center Content */}
-                      <div className="flex-1 flex flex-col items-center justify-center pr-2 min-w-0">
-                        {/* Product Name (Compact, single-line, max 20 chars) */}
-                        <div 
-                          className="name truncate max-w-full text-center font-bold text-xs text-slate-800 px-1 leading-snug mb-1 tracking-tight"
-                          title={currProd?.name || 'Product'}
-                        >
-                          {truncate20(currProd?.name || 'Product', 20)}
-                        </div>
-
-                        {/* Barcode SVG Container */}
-                        <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-0.5">
-                          <Barcode 
-                            value={selectedBarcode} 
-                            displayValue={false}
-                            width={2.2}
-                            height={32} 
-                            background="transparent"
-                            margin={1}
-                          />
-                        </div>
+                      {/* Product Name (Compact, single-line, max 20 chars) */}
+                      <div 
+                        className="name truncate max-w-full text-center font-bold text-xs text-slate-800 px-1 leading-snug mb-1 tracking-tight"
+                        title={currProd?.name || 'Product'}
+                      >
+                        {truncate20(currProd?.name || 'Product', 20)}
                       </div>
 
-                      {/* Side Brand: managed by dobill.in */}
-                      <div className="side-brand flex items-center justify-center border-l border-slate-200/90 pl-2.5 pr-0.5 shrink-0 select-none">
-                        <span 
-                          className="text-[9px] font-black tracking-wider text-slate-600 uppercase whitespace-nowrap block"
-                          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-                        >
+                      {/* Barcode SVG Container */}
+                      <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-0.5">
+                        <Barcode 
+                          value={selectedBarcode} 
+                          displayValue={false}
+                          width={2.2}
+                          height={32} 
+                          background="transparent"
+                          margin={1}
+                        />
+                      </div>
+
+                      {/* Brand Footer: managed by dobill.in */}
+                      <div className="side-brand w-full text-center mt-1 select-none">
+                        <span className="text-[9.5px] font-black tracking-wider text-slate-600 uppercase">
                           managed by dobill.in
                         </span>
                       </div>
