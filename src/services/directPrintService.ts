@@ -1139,6 +1139,12 @@ export const DirectPrintService = {
         }
         addNewLine();
 
+        // Print managed by dobill.in micro-footer cleanly in Font B
+        add([0x1B, 0x61, 0x01]); // Center
+        add([0x1B, 0x4D, 0x01]); // Font B (crisp, small thermal hardware font)
+        addText('managed by dobill.in');
+        addNewLine();
+        add([0x1B, 0x4D, 0x00]); // Reset to Font A
 
         // Calibrated feed for die-cut label gap sensor (advances to top of next sticker)
         add([0x1B, 0x64, 0x01]);
@@ -1667,9 +1673,10 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
         width: 100% !important;
         height: 100% !important;
         display: flex !important;
-        flex-direction: row !important;
+        flex-direction: column !important;
         align-items: center !important;
-        justify-content: space-between !important;
+        justify-content: center !important;
+        text-align: center !important;
         padding: 1mm 2mm !important;
         box-sizing: border-box !important;
       }
@@ -1699,38 +1706,28 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       box-sizing: border-box !important;
       padding: 1.5mm 2mm !important;
       display: flex !important;
-      flex-direction: row !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-      background: #ffffff !important;
-    }
-    .label-main {
-      flex: 1 !important;
-      display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
-      min-width: 0 !important;
-      padding-right: 1.5mm !important;
+      text-align: center !important;
+      background: #ffffff !important;
     }
     .side-brand {
-      border-left: 0.5px solid #bbbbbb !important;
-      padding-left: 1mm !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      white-space: nowrap !important;
-      flex-shrink: 0 !important;
+      width: 100% !important;
+      text-align: center !important;
+      margin-top: 1.5px !important;
+      padding: 0 !important;
+      line-height: 1 !important;
+      display: block !important;
     }
     .side-brand span {
-      font-size: 6pt !important;
+      font-size: 6.5pt !important;
       font-weight: 800 !important;
       text-transform: uppercase !important;
       letter-spacing: 0.5px !important;
       color: #333333 !important;
-      writing-mode: vertical-rl !important;
-      transform: rotate(180deg) !important;
-      display: block !important;
+      display: inline-block !important;
+      white-space: nowrap !important;
     }
     .brand {
       font-size: 13pt !important;
