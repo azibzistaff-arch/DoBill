@@ -1947,12 +1947,17 @@ const AppContent = () => {
               </Button>
               
               <div className="px-3 py-2 text-center border-t border-slate-100 mt-2">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-tight">
-                  Designed & Developed by
+                <p className="text-[9px] font-bold text-slate-400 tracking-wider leading-tight uppercase">
+                  Managed by
                 </p>
-                <p className="text-[10.5px] font-black text-emerald-600 uppercase tracking-wide">
-                  DO BILL
-                </p>
+                <a 
+                  href="https://dobill.in" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-black text-emerald-600 hover:text-emerald-700 tracking-wide transition-colors"
+                >
+                  dobill.in
+                </a>
               </div>
             </div>
           </div>
@@ -2116,5 +2121,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
 
