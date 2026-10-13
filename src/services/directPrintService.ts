@@ -1092,8 +1092,8 @@ export const DirectPrintService = {
       const wMm = dims.widthMm;
       const hMm = dims.heightMm;
 
-      // 203 DPI = 8 dots/mm. Barcode height is dynamically scaled to ~38-42% of physical label height
-      const barcodeHeightDots = Math.max(48, Math.min(220, Math.round(hMm * 8 * 0.40)));
+      // 203 DPI = 8 dots/mm. Barcode height is slim & proportionate (~18% of label height, ~22-35 dots)
+      const barcodeHeightDots = Math.max(22, Math.min(48, Math.round(hMm * 8 * 0.18)));
       const cleanBarcode = barcode.trim();
       const moduleWidth = (wMm >= 75 && cleanBarcode.length <= 14) ? 3 : 2;
 
@@ -1139,14 +1139,6 @@ export const DirectPrintService = {
         }
         addNewLine();
 
-        // Print human-readable "Random - Price - Random" text prominently under barcode
-        if (displayCode) {
-          add([0x1B, 0x61, 0x01]); // Center alignment
-          add([0x1B, 0x45, 0x01]); // Bold ON
-          addText(displayCode);
-          addNewLine();
-          add([0x1B, 0x45, 0x00]); // Bold OFF
-        }
 
         // Calibrated feed for die-cut label gap sensor (advances to top of next sticker)
         add([0x1B, 0x64, 0x01]);
@@ -1675,9 +1667,11 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
         width: 100% !important;
         height: 100% !important;
         display: flex !important;
-        flex-direction: column !important;
+        flex-direction: row !important;
         align-items: center !important;
-        justify-content: center !important;
+        justify-content: space-between !important;
+        padding: 1mm 2mm !important;
+        box-sizing: border-box !important;
       }
     }
     html, body {
@@ -1703,13 +1697,40 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
     .label-card {
       width: 100% !important;
       box-sizing: border-box !important;
-      padding: 2px 4px !important;
+      padding: 1.5mm 2mm !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      background: #ffffff !important;
+    }
+    .label-main {
+      flex: 1 !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
-      text-align: center !important;
-      background: #ffffff !important;
+      min-width: 0 !important;
+      padding-right: 1.5mm !important;
+    }
+    .side-brand {
+      border-left: 0.5px solid #bbbbbb !important;
+      padding-left: 1mm !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+    .side-brand span {
+      font-size: 5pt !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      color: #555555 !important;
+      writing-mode: vertical-rl !important;
+      transform: rotate(180deg) !important;
+      display: block !important;
     }
     .brand {
       font-size: 13pt !important;
@@ -1751,11 +1772,10 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
     .barcode-container svg {
       display: block !important;
       margin: 0 auto !important;
-      width: 98% !important;
-      max-width: 100% !important;
-      height: auto !important;
-      min-height: 60px !important;
-      max-height: 110px !important;
+      width: auto !important;
+      max-width: 80% !important;
+      height: 25px !important;
+      max-height: 28px !important;
       shape-rendering: crispEdges !important;
     }
     .barcode-container svg g rect {
