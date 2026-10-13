@@ -385,19 +385,17 @@ export default function Inventory() {
   const generateBarcodeFullHTML = () => {
     const totalLabels = 1;
     const product = selectedProduct || products.find(p => p.barcode === selectedBarcode);
-    const name = product?.name || 'Product';
+    const rawName = product?.name || 'Product';
+    const name = truncate20(rawName, 20);
     const price = product?.sellingPrice ?? (product as any)?.selling_price ?? 0;
-    const brand = customBrandText.trim() || shopName || product?.brand || 'DO BILL';
 
     const svgHTML = getCleanBarcodeSVG(selectedBarcode || '', price);
 
     const cards = Array(totalLabels).fill(0).map(() => `
       <div class="print-page">
         <div class="label-card">
-          ${showBrandOnLabel && brand ? `<div class="brand">${brand}</div>` : ''}
-          ${showNameOnLabel && name ? `<div class="name">${name}</div>` : ''}
+          ${name ? `<div class="name">${name}</div>` : ''}
           <div class="barcode-container">${svgHTML}</div>
-          ${showPriceOnLabel && price !== undefined ? `<div class="price">MRP ₹${Number(price).toFixed(2)}</div>` : ''}
         </div>
       </div>
     `).join('');
@@ -949,21 +947,15 @@ export default function Inventory() {
                     {/* Centered Sticker Preview */}
                     <div 
                       id="printable-label-area" 
-                      className="bg-white p-4 rounded-xl shadow-md border border-slate-300 overflow-hidden max-w-[320px] w-full flex flex-col items-center justify-between text-center my-2 transition-all duration-300 min-h-[160px]"
+                      className="bg-white p-4 rounded-xl shadow-md border border-slate-300 overflow-hidden max-w-[320px] w-full flex flex-col items-center justify-center text-center my-2 transition-all duration-300 min-h-[140px]"
                     >
-                      {/* Shop / Store Name */}
-                      {showBrandOnLabel && (
-                        <div className="brand w-full text-center font-black text-xs tracking-wider uppercase text-slate-800 truncate px-1 mb-1">
-                          {activeBrand}
-                        </div>
-                      )}
-
-                      {/* Product Name */}
-                      {showNameOnLabel && (
-                        <div className="name line-clamp-2 w-full text-center font-extrabold text-sm text-slate-900 px-1 leading-tight my-1">
-                          {currProd?.name || 'Product'}
-                        </div>
-                      )}
+                      {/* Product Name (Compact, single-line, max 20 chars) */}
+                      <div 
+                        className="name truncate max-w-[85%] mx-auto text-center font-bold text-xs text-slate-800 px-1 leading-snug my-1 tracking-tight"
+                        title={currProd?.name || 'Product'}
+                      >
+                        {truncate20(currProd?.name || 'Product', 20)}
+                      </div>
 
                       {/* Barcode SVG Container (Strictly Centered with Quiet Zones) */}
                       <div className="barcode-container flex flex-col justify-center items-center w-full my-auto overflow-visible py-1">
@@ -978,13 +970,6 @@ export default function Inventory() {
                           margin={2}
                         />
                       </div>
-
-                      {/* Selling Price / MRP */}
-                      {showPriceOnLabel && effectivePrice > 0 && (
-                        <div className="price text-sm font-black text-slate-950 tracking-tight mt-1">
-                          MRP ₹{Number(effectivePrice).toFixed(2)}
-                        </div>
-                      )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-center gap-2">
@@ -1017,92 +1002,26 @@ export default function Inventory() {
               </p>
             </div>
 
-            {/* Content Options & Store Title */}
-            <div className="max-w-md mx-auto w-full space-y-3">
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Label Content Elements
-                  </Label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsPrinterModalOpen(true)}
-                    className="h-7 text-[11px] font-bold text-blue-600 hover:text-blue-800 p-0 hover:bg-transparent"
-                  >
-                    ⚙️ Printer Settings
-                  </Button>
-                </div>
-
-                {/* Content Elements Toggles */}
-                <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-1">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={showNameOnLabel} 
-                      onChange={e => setShowNameOnLabel(e.target.checked)}
-                      className="rounded accent-blue-600 h-3.5 w-3.5"
-                    />
-                    <span>Product Name</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={showPriceOnLabel} 
-                      onChange={e => setShowPriceOnLabel(e.target.checked)}
-                      className="rounded accent-blue-600 h-3.5 w-3.5"
-                    />
-                    <span>MRP Price</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={showBrandOnLabel} 
-                      onChange={e => setShowBrandOnLabel(e.target.checked)}
-                      className="rounded accent-blue-600 h-3.5 w-3.5"
-                    />
-                    <span>Store Header</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Store Title Customizer */}
-            <div className="max-w-md mx-auto w-full">
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-black uppercase tracking-wider text-slate-600">
-                    Store Header
-                  </Label>
-                  <label className="flex items-center gap-1 cursor-pointer text-[11px] font-bold text-slate-500">
-                    <input 
-                      type="checkbox" 
-                      checked={showBrandOnLabel} 
-                      onChange={e => setShowBrandOnLabel(e.target.checked)}
-                      className="rounded accent-blue-600 h-3.5 w-3.5"
-                    />
-                    <span>Show</span>
-                  </label>
-                </div>
-                <Input 
-                  value={customBrandText}
-                  onChange={e => setCustomBrandText(e.target.value)}
-                  placeholder="Store / Shop name..."
-                  disabled={!showBrandOnLabel}
-                  className="h-10 text-xs font-bold border-slate-200 rounded-xl"
-                />
-              </div>
-            </div>
           </div>
 
           <DialogFooter className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 no-print shrink-0">
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsBarcodeViewOpen(false)} 
-              className="font-bold text-slate-500 h-11 rounded-xl px-5 text-sm hover:bg-slate-100 w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsBarcodeViewOpen(false)} 
+                className="font-bold text-slate-500 h-11 rounded-xl px-5 text-sm hover:bg-slate-100"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPrinterModalOpen(true)}
+                className="h-11 rounded-xl px-4 text-xs font-bold text-slate-600 border-slate-200 hover:bg-slate-50"
+              >
+                ⚙️ Printer Settings
+              </Button>
+            </div>
 
             <div className="flex items-center justify-end gap-3 w-full sm:w-auto">
               <Button 
@@ -1155,4 +1074,4 @@ export default function Inventory() {
     </div>
   );
 }
-
+s
