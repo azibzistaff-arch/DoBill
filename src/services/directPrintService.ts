@@ -2,6 +2,7 @@ import { Sale } from '../types';
 import { ShopDetails, DataService } from './dataService';
 import { safeLocalStorage, safeSessionStorage } from '@/utils/safeStorage';
 import { isAndroidNative, getThermalPrinter, getCapacitorApp } from './nativePlugins';
+import { truncate20 } from '@/lib/utils';
 
 export { isAndroidNative } from './nativePlugins';
 
@@ -1102,27 +1103,12 @@ export const DirectPrintService = {
         add([0x1B, 0x74, 0x00]); // Codepage PC437
         add([0x1B, 0x61, 0x01]); // Center alignment
 
-        // Brand / Shop Name (Prominent Centered Header)
-        if (brand && brand.trim()) {
-          add([0x1B, 0x61, 0x01]); // Center
-          add([0x1B, 0x45, 0x01]); // Bold ON
-          const maxBrandChars = Math.max(18, Math.min(36, Math.floor(wMm * 0.4)));
-          addText(brand.trim().toUpperCase().slice(0, maxBrandChars));
-          addNewLine();
-          add([0x1B, 0x45, 0x00]); // Bold OFF
-        }
-
-        // Product Name (wrapped cleanly)
+        // Product Name (Clean, compact, single line, max 20 chars)
         if (productName && productName.trim()) {
           add([0x1B, 0x61, 0x01]); // Center
           add([0x1B, 0x45, 0x01]); // Bold ON
-          const maxNameChars = Math.max(18, Math.min(36, Math.floor(wMm * 0.4)));
-          const nameLines = wrapText(productName.trim(), maxNameChars);
-          addText(nameLines[0]);
-          if (nameLines[1]) {
-            addNewLine();
-            addText(nameLines[1]);
-          }
+          const compactName = truncate20(productName.trim(), 20);
+          addText(compactName);
           add([0x1B, 0x45, 0x00]); // Bold OFF
           addNewLine();
         }
@@ -1160,15 +1146,6 @@ export const DirectPrintService = {
           addText(displayCode);
           addNewLine();
           add([0x1B, 0x45, 0x00]); // Bold OFF
-        }
-
-        // Product Price
-        if (price !== undefined && price > 0) {
-          add([0x1B, 0x61, 0x01]); // Center alignment
-          add([0x1B, 0x45, 0x01]); // Bold ON
-          addText(`MRP: Rs. ${price.toFixed(2)}`);
-          add([0x1B, 0x45, 0x00]); // Bold OFF
-          addNewLine();
         }
 
         // Calibrated feed for die-cut label gap sensor (advances to top of next sticker)
@@ -1747,15 +1724,18 @@ export function buildBarcodeLabelHTML(labelsInnerHTML: string, _targetPrinterNam
       line-height: 1.2 !important;
     }
     .name {
-      font-size: 13pt !important;
-      font-weight: 800 !important;
-      width: 100% !important;
-      line-height: 1.2 !important;
+      font-size: 8.5pt !important;
+      font-weight: 700 !important;
+      max-width: 85% !important;
+      width: auto !important;
+      line-height: 1.15 !important;
       color: #000000 !important;
-      margin: 1px 0 3px 0 !important;
-      padding: 0 !important;
+      margin: 1px auto 2px auto !important;
+      padding: 0 4px !important;
       text-align: center !important;
-      word-break: break-word !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
     }
     .barcode-container {
       width: 100% !important;
@@ -2096,4 +2076,3 @@ if (typeof window !== 'undefined' && !isLifecycleListenerRegistered) {
     });
   }
 }
-
